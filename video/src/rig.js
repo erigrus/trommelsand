@@ -25,6 +25,18 @@ export function clear(x, z, h, r = 25) {
   return g + h;
 }
 
+/** Lift cam (a Vector3, in place) until its line of sight to `target` clears the dunes by `margin`. */
+export function sightline(cam, target, margin = 0.6) {
+  let y = cam.y;
+  for (let k = 1; k <= 22; k++) {
+    const f = k / 24;
+    const x = cam.x + (target.x - cam.x) * f, z = cam.z + (target.z - cam.z) * f;
+    y = Math.max(y, (duneHeight(x, z) + margin - target.y * f) / (1 - f));
+  }
+  cam.y = y;
+  return cam;
+}
+
 export const ground = (x, z) => duneHeight(x, z);
 export const onGround = (x, z, h = 0) => V(x, duneHeight(x, z) + h, z);
 

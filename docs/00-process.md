@@ -138,3 +138,77 @@ Bugs found by looking:
 - The banding seen on early contact sheets came from the sheet tool (PNG → YUV), not the render.
 
 Not done here: watching it in real time with the song, and checking GPU speed. Both happen at home.
+
+## 2026-10-12 · v3: real figure, a story for part A, no more patterns
+
+Feedback on v2: the cloth flutter moved the whole walker, not just the robe. The walker and worm
+still looked cheap ("can we use free existing models?"). Part A had little story. The geometric
+plate patterns felt out of place. When the camera followed the walker, it copied every step.
+
+**Walker → a rigged, animated model.** The free model that fits, can be fetched from inside the
+container and is licensed for this kind of use is the *Soldier* from the three.js examples: a Mixamo
+character with a skeleton and idle/walk/run clips. Mixamo characters and animations are free to use in
+projects, including commercial ones, but the files may not be redistributed on their own. The repo
+therefore doesn't contain the file: `npm run models` downloads it into `video/public/models/`
+(git-ignored), and without it the director falls back to the old procedural walker.
+- The armour is hidden above the knees (per-vertex `discard`). Robe, cape, hood, sleeves, scarf and
+  sash are generated in the model's bind space and **skinned to the same skeleton**, so the cloth
+  moves with the legs, hips and arms.
+- Only the robe hem, the cape edge and the scarf flutter (per-vertex `aFlutter`); the rest of the body
+  holds still. Woven cloth texture with stripes and a frayed hem. A dark void under the hood instead of a face.
+- The walk clip is sampled at an absolute time from the step count, so frames stay a pure function of
+  music time. The staff is placed in the right hand each frame. The thumper pack rides on his back
+  until he drives it into the ground.
+- The fallback walker had the same bug (the hood and sleeve used the hem-flutter material, and
+  their mesh origin is near the top, so the whole shape shook); fixed too.
+
+**Worm.** No free sandworm model fits without copying a film design, so it stays procedural but gained
+a lot of detail: a generated skin (plate lips, seam grooves, irregular wrinkles, pits, cracks, sand in
+the seams) as colour and bump maps, 260×48 segments, five rows of teeth down a dark-red throat with
+flesh rings, textured petals.
+
+**Story for part A.** The figure is now set up in the intro and the whole of part A is his walk toward
+something:
+- 02c/02d: he waits on a crest against the dawn with the thumper on his back while the title forms.
+- 03 (bar 8): his **first step** on the band entry sends the giant ring across the desert.
+- 04: the walk along the crest. 05b–05c: along a ridge, then down a slip face.
+- 05d (bar 29): from above, a **giant worm skeleton** lies half-buried in the dunes ahead.
+- 06 (A3, the darker block): he walks *through* it, under the ribs, sand pouring through the
+  vertebrae on the beat, beneath the ring of teeth; bar 40 (cymbals back) tears the sand off the
+  bones and reveals the whole skeleton; then out through the jaws.
+
+This also prepares part B: the thing he's calling with the thumper is the living version of that skeleton.
+
+**Patterns removed.** The Chladni plate (`chladni.js`) is gone. A3 is the skeleton set piece, and the
+final hits (cut 19) are in-world: from above, each hit throws a giant ring out of the worm's dive site.
+
+**Camera vs. steps.** The walker's progress was a step function (one jump per kick), and cameras aimed
+straight at him. Now his progress is an integer per kick, linear in between and smoothed over 0.7 s,
+so the body moves continuously while each kick still lands as a footfall. Cameras aim at a
+separate lagging anchor (`follow()`), averaged over the last 1.6 s, which glides instead of stepping.
+Checked on frame strips (24.0 s, 122.0 s).
+
+Second round, after looking at stills of every cut:
+- **The walker floated on sharp crests.** The terrain mesh has 2.5 m cells, so it cuts the top off
+  a knife-edge crest by up to half a metre, while the figure stood on the exact `duneHeight`. Figures now
+  stand on `Terrain.drawnHeight()`, the height of the triangle the GPU actually draws there.
+- **Figures were too dark in shade.** The hemisphere fill was weak next to the terrain's own lighting,
+  so every unlit side went black. The fill is now 2× stronger, with more bounce from the sand. Robes are
+  sun-bleached instead of dark brown, and backlit cloth glows in its own colour instead of white.
+- **The carried thumper read as a box above his head.** It is now slung diagonally across his back (hammer at
+  the hip, pole tip above the right shoulder), with a sack and bedroll.
+- **The skeleton looked like a slinky:** perfectly regular hoops. Now spacing, lean, height, wobble and
+  thickness vary per rib, some are snapped or missing, ribs are flat bone (not pipes), loose fragments lie
+  in the sand, and sand is drifted against the rib roots (terrain mounds, blown away from bar 40 on).
+  The jaw ring is warped, with uneven, broken and missing teeth.
+- **The worm still looked like a corrugated pipe.** Plates are now uneven in length, lip height and depth,
+  lumpy around the body, armoured on the back and softer on the belly, with dust patches and a tint per plate.
+  The mouth has three rows of hooked teeth spiralling down a ridged, fleshy throat, and the petals are skin
+  outside, wet flesh lined with hooks inside.
+- **The walker vanished in the skeleton's trough (06d, 06f).** Debugging (hide the terrain → he's there;
+  GLSL and JS heights identical) showed the coarse far grid. It is drawn everywhere, only 2 m lower, and its
+  44 m triangles span a narrow trough several metres above the real floor, so they covered him. The far grid
+  now discards fragments wherever the fine grid exists. This could have hidden figures in any deep trough before.
+- 06f's exit path started 37 m inside the skeleton, so he never actually walked out of the jaws; it now starts at the
+  head end. `sightline()` (rig.js) lifts a low camera just enough to keep a figure in view over humps.
+- 08a: the walker and thumper were cut off by the frame edge; reframed over his shoulder toward the mound.

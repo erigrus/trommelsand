@@ -4,3 +4,5 @@ video/node_modules/
 video/dist/
 node_modules/
 __pycache__/
+# third-party models are downloaded by `npm run models`, not committed
+video/public/models/*.glb

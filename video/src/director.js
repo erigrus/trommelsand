@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { U } from './world/shared.js';
-import { MAX_RINGS, duneHeight } from './world/terrain-fn.js';
+import { MAX_RINGS, MAX_MOUNDS, duneHeight } from './world/terrain-fn.js';
 import { Terrain } from './world/terrain.js';
 import { Sky } from './world/sky.js';
 import { Particles } from './world/particles.js';
 import { Walker, Stake, Worm, RIM, WIND } from './world/figures.js';
-import { Chladni } from './world/chladni.js';
+import { WormSkeleton } from './world/bones.js';
+import { RiggedWalker } from './world/walker.js';
 import { Post } from './post/post.js';
 import { makeTitleTexture } from './post/titles.js';
 import { LOOK } from './look.js';
@@ -72,8 +73,7 @@ export class Director {
     this.walker = new Walker(this.scene);
     this.stake = new Stake(this.scene);
     this.worm = new Worm(this.scene);
-    this.chladni = new Chladni();
-    this.chladni.uniforms.uRes.value.set(width, height);
+    this.skel = new WormSkeleton(this.scene);   // built by the timeline (cut 05d init)
 
     this.post = new Post(renderer, width, height);
 
@@ -93,6 +93,9 @@ export class Director {
 
   async init() {
     this.post.g.tTitle.value = await makeTitleTexture(this.width, this.height);
+    // the rigged walker if its model was fetched (npm run models), else the procedural one
+    this.rigged = await RiggedWalker.load(this.scene);
+    if (this.rigged) this.walker.visible = false;
   }
 
   setSize(w, h) {
@@ -101,7 +104,6 @@ export class Director {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
     this.post.setSize(w, h);
-    this.chladni.uniforms.uRes.value.set(w, h);
   }
 
   sim(t) {
@@ -157,7 +159,7 @@ export class Director {
       u: clamp((t - shot.start) / (shot.end - shot.start)),
       look,
       camera: this.camera,
-      scene: 'desert',
+      skeleton: false,      // the dead worm's bones (part A)
       rings: null,          // (hit) => [x, z, strength] | null  — kick rings
       ringHits: 'kick',     // which hit list drives rings ('kick' | 'beat')
       ringShape: [30, 3, 0.6, 1.2],
@@ -182,15 +184,6 @@ export class Director {
       hatEnv: m.envelope('hat', t, 0.12),
     };
     shot.frame(ctx);
-
-    if (ctx.scene === 'chladni') {
-      this.applyPost(ctx, look, tFrame);
-      this.post.r.uSunOn.value = 0;
-      this.post.bloom.strength = 0.25;
-      this.renderer.toneMappingExposure = look.exposure;
-      this.post.render(this.chladni.scene, this.chladni.camera);
-      return;
-    }
 
     this.applyWorld(ctx, look);
     this.applyPost(ctx, look, tFrame);
@@ -252,6 +245,8 @@ export class Director {
       list.slice(-MAX_RINGS).forEach((r, i) => rings[i].set(...r));
     }
     U.uRingShape.value.set(...ctx.ringShape);
+    // sand drifted against the skeleton's ribs (the ones nearest the camera)
+    if (ctx.skeleton && !ctx.mounds.length) ctx.mounds = this.skel.driftsNear(cam.position.x, cam.position.z, MAX_MOUNDS, ctx.skeleton.drift ?? 1);
     const mounds = U.uMounds.value;
     mounds.forEach((v, i) => (ctx.mounds[i] ? v.set(...ctx.mounds[i]) : v.set(0, 0, 0, 0)));
     this.terrain.setFeet(ctx.feet);
@@ -279,8 +274,9 @@ export class Director {
     this.sunLight.position.copy(cam.position).addScaledVector(sunDir, 500);
     this.sunLight.target.position.copy(cam.position);
     this.hemi.color.setRGB(...look.zenith);
-    this.hemi.groundColor.setRGB(...look.sand).multiplyScalar(0.5);
-    this.hemi.intensity = 1.1 + look.night * 0.6;
+    // fill: open sky above and a lot of bounce off the sand, so figures match the terrain's own shading
+    this.hemi.groundColor.setRGB(...look.sand).multiplyScalar(0.8);
+    this.hemi.intensity = 2.2 + look.night * 0.8;
     RIM.value.setRGB(...look.sunColor).multiplyScalar(look.sunPower * sunUp * backlit * backlit * 1.1)
       .add(new THREE.Color(0.25, 0.35, 0.6).multiplyScalar(look.night * 0.5));
     const wlen = Math.hypot(ctx.wind[0], ctx.wind[1]);
@@ -307,12 +303,20 @@ export class Director {
     show(this.storm, stormFx, { uBox: [140, 50, 140], uWind: [55, -2, 14], uGust: 0, uSize: 0.12, uColor: sandRGB, uOpacity: 0.55 * look.storm });
 
     // figures
-    this.walker.visible = !!ctx.walker;
+    const fig = this.rigged ?? this.walker;
+    fig.visible = !!ctx.walker;
     if (ctx.walker) {
       const w = ctx.walker;
-      this.walker.place(w.x, w.z, w.heading, w.step ?? 0, { y: w.y, scale: w.scale ?? 1, brace: w.brace ?? 0, t: ctx.sim,
-        wind: { dir: [ctx.wind[0] / wlen, ctx.wind[1] / wlen], strength: clamp(wlen / 12) } });
+      const y = w.y ?? this.terrain.drawnHeight(w.x, w.z);
+      if (this.rigged) {
+        this.rigged.place(w.x, w.z, w.heading, w.step ?? 0, { y, scale: w.scale ?? 1, brace: w.brace ?? 0, t: ctx.sim,
+          walk: w.walk, carry: !!w.carry, wind: ctx.wind, windStrength: clamp(wlen / 14) + ctx.snareEnv * 0.25 });
+      } else {
+        this.walker.place(w.x, w.z, w.heading, w.step ?? 0, { y, scale: w.scale ?? 1, brace: w.brace ?? 0, t: ctx.sim,
+          wind: { dir: [ctx.wind[0] / wlen, ctx.wind[1] / wlen], strength: clamp(wlen / 12) } });
+      }
     }
+    this.skel.visible = !!ctx.skeleton;
     this.stake.visible = !!ctx.stake;
     if (ctx.stake) this.stake.place(ctx.stake.x, ctx.stake.z, { ...ctx.stake, windYaw: Math.atan2(-ctx.wind[1], ctx.wind[0]) });
     this.worm.visible = !!ctx.worm;

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { duneHeight } from './world/terrain-fn.js';
 import { clamp, lerp, smoothstep, easeOutCubic, hash1 } from './core/util.js';
-import { V, aim, clear, onGround, crestX, ridgePath, findBasin, flight, ahead, wormBody, easeIn, easeInOut } from './rig.js';
+import { V, aim, clear, sightline, onGround, crestX, ridgePath, findBasin, flight, ahead, wormBody, easeIn, easeInOut } from './rig.js';
 
 // =============================================================================
 // The storyboard (docs/02-storyboard.md) as code: a list of CUTS, each pinned
@@ -28,21 +28,40 @@ export function buildShots(m) {
   const cuts = [];
   const cut = (id, name, start, frame, init) => cuts.push({ id, name, start, frame, init });
 
-  // ---- walking: one step per kick ------------------------------------------
-  const STEP = 0.8;
-  const steps = (t, from, kind = 'kick') => {
-    const n = m.hitCount(kind, t) - m.hitCount(kind, from);
-    if (n <= 0) return 0;
-    const last = m.recentHits(kind, t, 1).pop();
-    return n - 1 + (last ? easeOutCubic(clamp(last.age / 0.3)) : 1);
+  // ---- walking: a footfall on every kick, but the body moves continuously -----
+  // Progress is an integer at each hit (0 at the first after `from`), linear in
+  // between, then averaged over ~0.7 s so the walker never surges. Cameras follow
+  // an even smoother, slightly lagging anchor so they don't lock onto each step.
+  const STEP = 0.75;
+  const rawSteps = (t, from, kind = 'kick') => {
+    if (t <= from) return 0;
+    const h = m.hits[kind];
+    const i0 = m.hitCount(kind, from), i1 = m.hitCount(kind, t);
+    if (i1 <= i0) return 0;
+    const tPrev = h[i1 - 1][0];
+    const tNext = i1 < h.length ? h[i1][0] : tPrev + 0.6;
+    return i1 - i0 - 1 + clamp((t - tPrev) / clamp(tNext - tPrev, 0.12, 1.1));
+  };
+  const steps = (t, from, kind = 'kick', win = 0.7) => {
+    let sum = 0;
+    for (let k = -3; k <= 3; k++) sum += rawSteps(t + (k / 6) * win, from, kind);
+    return sum / 7;
   };
   const walker = (path, t, from, s0 = 0, extra = {}) => {
     const st = steps(t, from);
+    const speed = (steps(t + 0.15, from) - steps(t - 0.15, from)) / 0.3;
     const p = path(s0 + st * STEP);
-    return { x: p.x, z: p.z, heading: p.heading, step: st, ...extra };
+    return { x: p.x, z: p.z, heading: p.heading, step: st, walk: clamp(speed / 1.2), ...extra };
+  };
+  /** Smooth, lagging ground point that follows the walker (camera anchor). */
+  const follow = (path, t, from, s0 = 0) => {
+    let sum = 0;
+    for (let k = 0; k < 8; k++) sum += steps(t - 0.2 - k * 0.2, from, 'kick', 1.0);
+    const p = path(s0 + (sum / 8) * STEP);
+    return onGround(p.x, p.z);
   };
   const footAt = (path, hit, from, s0 = 0) => {
-    const k = hit.i - m.hitCount('kick', from) + 1;
+    const k = hit.i - m.hitCount('kick', from);
     const p = path(s0 + k * STEP);
     const side = k % 2 ? 0.13 : -0.13;
     return [p.x - p.dir[1] * side, p.z + p.dir[0] * side, p.heading];
@@ -52,6 +71,33 @@ export function buildShots(m) {
     const out = [];
     for (let i = Math.max(i0, i1 - 24); i < i1; i++) out.push([...footAt(path, { i }, from, s0), 1]);
     return out;
+  };
+  /** A walker on `path` with footprints and a booming ring per footfall. */
+  const walkOn = (c, path, from, s0 = 0, { ring = 1.2, extra = {} } = {}) => {
+    const w = walker(path, c.t, from, s0, extra);
+    c.walker = w;
+    c.feet = footprints(path, c.t, from, s0);
+    c.rings = (h) => (h.t >= from ? (() => { const f = footAt(path, h, from, s0); return [f[0], f[1], h.w * ring]; })() : null);
+    const W = onGround(w.x, w.z);
+    const fwd = V(-Math.sin(w.heading), 0, -Math.cos(w.heading));
+    return { w, W, fwd, A: follow(path, c.t, from, s0) };
+  };
+  /** Path through ground points [[x, z], ...] by arc length -> { x, z, heading, dir }. */
+  const polyPath = (pts) => {
+    const seg = [];
+    let total = 0;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x0, z0] = pts[i], [x1, z1] = pts[i + 1];
+      const l = Math.hypot(x1 - x0, z1 - z0);
+      seg.push({ x0, z0, dx: (x1 - x0) / l, dz: (z1 - z0) / l, l, s0: total });
+      total += l;
+    }
+    return (s) => {
+      const sc = clamp(s, 0, total - 1e-3);
+      const g = seg.find((q) => sc < q.s0 + q.l) || seg[seg.length - 1];
+      const u = sc - g.s0;
+      return { x: g.x0 + g.dx * u, z: g.z0 + g.dz * u, heading: Math.atan2(-g.dx, -g.dz), dir: [g.dx, g.dz] };
+    };
   };
 
   // ---- the thumper: slams on every beat --------------------------------------
@@ -101,77 +147,76 @@ export function buildShots(m) {
     c.punch = 0;
   }, () => { RA = ridgePath(0, -1400, 300); });
 
-  let zW, xW, xC;
-  cut('02c', 'Endless dunes, the title forms, a figure on the far ridge', B(5), (c) => {
-    const g = duneHeight(xC, zW + 120);
-    aim(c.camera, V(xC + c.local * 2.5, g + 14, zW + 120), V(xW + 900, duneHeight(xW, zW) + 6, zW - 40), 28);
-    c.walker = { x: xW, z: zW, heading: -Math.PI / 2, step: 0 };
+  // the walker waits at the start of his crest through the intro
+  const START = RIDGE(0);
+  const SW = () => onGround(START.x, START.z);
+  let xC;
+  cut('02c', 'Long lens: a figure waits on a crest against the dawn, the title forms', B(5), (c) => {
+    const W = SW();
+    const cp = V(xC + c.local * 0.6, 0, START.z + 40);
+    cp.y = clear(cp.x, cp.z, 6, 20);
+    aim(c.camera, cp, W.clone().add(V(0, 2.4, 0)), 6.5);
+    c.walker = { x: START.x, z: START.z, heading: START.heading, step: 0, walk: 0, carry: true };
     c.post.title = smoothstep(m.barTime(5), m.barTime(6) - 0.3, c.t);
     c.drift = { uGust: 0.3 + c.snareEnv * 1.4 };
     c.punch = 0;
-  }, () => { zW = -2200; xW = crestX(300, zW); xC = crestX(xW - 600, zW + 120); });
+  }, () => { xC = START.x - 330; });
 
-  cut('02d', 'Accelerating into the dawn, the title blows away', B(7), (c) => {
-    const L = c.local;
-    const x = xW - 420 + 18 * L + 26 * L * L, z = zW + 40;
-    const y = clear(x, z, 8, 30);
-    aim(c.camera, V(x, y, z), V(x + 300, y - 10 + 3 * L, z - 10), lerp(38, 50, easeIn(c.u)));
+  cut('02d', 'Closing in on him; the title blows away', B(7), (c) => {
+    const W = SW();
+    const d = lerp(46, 9, easeInOut(c.u));
+    aim(c.camera, W.clone().add(V(-d, 1.2 + d * 0.06, d * 0.3)), W.clone().add(V(0, 1.6, 0)), lerp(24, 30, c.u));
+    c.walker = { x: START.x, z: START.z, heading: START.heading, step: 0, walk: 0, carry: true };
     c.post.title = 1;
     c.post.titleDissolve = smoothstep(B(7) + 0.1, B(8) - 0.3, c.t);
-    c.drift = { uGust: 0.5 + 1.5 * c.u + c.snareEnv, uOpacity: 0.35 };
-    c.shake = 0.08 + 0.3 * easeIn(c.u);
+    c.drift = { uGust: 0.5 + 1.2 * c.u + c.snareEnv, uOpacity: 0.5 };
+    c.shake = 0.05 + 0.15 * easeIn(c.u);
     c.punch = 0;
   });
 
   // ====================== BAR 8: THE BAND COMES IN =============================
-  let zE, xE, hE;
-  cut('03', 'Sunrise on the downbeat, one giant shockwave', B(8), (c) => {
-    const pos = V(xE - 12 + c.local * 4, hE + 34, zE);
-    aim(c.camera, pos, V(xE + 1500, hE - 34, zE + 30), 44);
+  cut('03', 'Bar 8: sunrise, and his first step sends a giant ring across the desert', B(8), (c) => {
+    const { W } = walkOn(c, RIDGE, WALK_FROM, 0, { extra: { carry: true } });
     const first = m.hitCount('kick', B(8));
-    c.rings = (h) => (h.i === first ? [xE + 1150, zE, 3.2] : [...ahead(pos, V(1, 0, 0), h.i, 250, 1300, 550, hash1), h.w * 1.1]);
-    c.ringShape = [260, 24, 3.6, 0.28];
+    const f0 = footAt(RIDGE, { i: first }, WALK_FROM);
+    c.rings = (h) => (h.i === first ? [f0[0], f0[1], 3.0] : h.t >= WALK_FROM ? (() => { const f = footAt(RIDGE, h, WALK_FROM); return [f[0], f[1], h.w * 1.3]; })() : null);
+    c.ringShape = [120, 9, 2.2, 0.3];
     c.ringLife = 7;
+    const u = easeInOut(c.u);
+    const S = SW();
+    aim(c.camera, S.clone().add(V(-16 - 30 * u, 6 + 34 * u, 20 + 40 * u)), S.clone().add(V(60, -6, -120)), 46);
     c.post.flash = 0.5 * since(c.t, m.barTime(8), 0.25);
-    c.shake = 0.7 * since(c.t, m.barTime(8), 1.8) + c.kickEnv * 0.15;
+    c.shake = 0.6 * since(c.t, m.barTime(8), 1.6) + c.kickEnv * 0.1;
     c.drift = { uGust: 1.2 + c.snareEnv };
-    c.dust = { uOpacity: 0.6 };
-  }, () => { zE = -3000; xE = crestX(0, zE); hE = duneHeight(xE, zE); });
+    void W;
+  });
 
   // ========================= A1: first steps (bars 10-16) ======================
-  const walkCut = (c) => {
-    const w = walker(RIDGE, c.t, WALK_FROM);
-    c.walker = w;
-    c.feet = footprints(RIDGE, c.t, WALK_FROM);
-    c.rings = (h) => { const f = footAt(RIDGE, h, WALK_FROM); return [f[0], f[1], h.w * 1.2]; };
-    const W = onGround(w.x, w.z);
-    const fwd = V(-Math.sin(w.heading), 0, -Math.cos(w.heading));
-    return { w, W, fwd };
-  };
+  const walkCut = (c) => walkOn(c, RIDGE, WALK_FROM, 0, { extra: { carry: true } });
   cut('04a', 'Walker in silhouette on the crest, each step booms', B(10), (c) => {
-    const { W, fwd } = walkCut(c);
-    aim(c.camera, W.clone().add(V(-30, 3.2, 6)), W.clone().add(V(0, 1.5, 0)).addScaledVector(fwd, 3), 22);
+    const { W, A, fwd } = walkCut(c);
+    aim(c.camera, A.clone().add(V(-30, 3.2, 6)), W.clone().add(V(0, 1.5, 0)).addScaledVector(fwd, 2), 22);
     c.ringShape = [16, 1.3, 0.28, 1.0];
   });
   cut('04b', 'Low behind the walker: the footprint trail leads away from us', B(12), (c) => {
-    const { W, fwd } = walkCut(c);
-    const cp = W.clone().addScaledVector(fwd, -7.5).add(V(0.6, 0, 0));
-    cp.y = duneHeight(cp.x, cp.z) + 0.55;
+    const { W, A, fwd } = walkCut(c);
+    const cp = A.clone().addScaledVector(fwd, -8).add(V(0.6, 0, 0));
+    cp.y = duneHeight(cp.x, cp.z) + 0.6;
     aim(c.camera, cp, W.clone().add(V(0, 1.0, 0)).addScaledVector(fwd, 4), 30);
     c.ringShape = [6, 0.45, 0.07, 1.4];
     c.dust = { uBox: [16, 3, 16], uSize: 0.008, uOpacity: 0.8 };
     c.motes = { uOpacity: 0.5 };
-    c.focus = 7.5;
+    c.focus = 8;
   });
   cut('04c', 'Drone descends over the crest, a trail of rings', B(14), (c) => {
-    const { W, fwd } = walkCut(c);
-    aim(c.camera, W.clone().add(V(0.01, lerp(34, 9, easeInOut(c.u)), 0)).addScaledVector(fwd, -4), W.clone().addScaledVector(fwd, 5), 42);
+    const { A, fwd } = walkCut(c);
+    aim(c.camera, A.clone().add(V(0.01, lerp(34, 10, easeInOut(c.u)), 0)).addScaledVector(fwd, -4), A.clone().addScaledVector(fwd, 6), 42);
     c.ringShape = [11, 1.0, 0.2, 0.9];
     c.ringLife = 4;
   });
   cut('04d', 'Front, low, the sun behind the hood', B(16), (c) => {
-    const { W, fwd } = walkCut(c);
-    aim(c.camera, W.clone().addScaledVector(fwd, 6).add(V(-24, 1.1, 0)), W.clone().add(V(0, 1.8, 0)), 17);
+    const { W, A, fwd } = walkCut(c);
+    aim(c.camera, A.clone().addScaledVector(fwd, 6).add(V(-24, 1.1, 0)), W.clone().add(V(0, 1.7, 0)), 17);
     c.ringShape = [16, 1.3, 0.28, 1.0];
     c.rays = { strength: 0.9 };
   });
@@ -188,118 +233,152 @@ export function buildShots(m) {
     c.shake = c.kickEnv * 0.2;
   }, () => { fly1 = flight({ t0: B(17), t1: B(21) + 1, x: 600, z: -4000, heading: Math.PI / 2, turns: [0, 0.22, -0.3, 0.18], period: 16 * 60 / 105 / 4, speed: 72, height: 15 }); });
 
-  cut('05b', 'Long ridge from the side, the tiny walker, each step a pulse', B(21), (c) => {
-    const w = walker(RIDGE, c.t, WALK_FROM);
-    c.walker = w;
-    const W = onGround(w.x, w.z);
-    const x = W.x - 120, z = W.z + 90 - 22 * c.local;
-    aim(c.camera, V(x, clear(x, z, 24, 30), z), W.clone().add(V(0, 3, -30)), 24);
-    c.rings = (h) => { const f = footAt(RIDGE, h, WALK_FROM); return [f[0], f[1], h.w * 1.4]; };
+  cut('05b', 'Long ridge from the side, the walker, each step a pulse', B(21), (c) => {
+    const { W, A } = walkOn(c, RIDGE, WALK_FROM, 0, { ring: 1.4, extra: { carry: true } });
+    const x = A.x - 110, z = A.z + 80 - 20 * c.local;
+    aim(c.camera, V(x, clear(x, z, 22, 30), z), W.clone().add(V(0, 3, -25)), 22);
     c.ringShape = [40, 3.5, 0.8, 0.6];
     c.ringLife = 5;
   });
 
-  let crestAv;
-  cut('05c', 'Under a slip face: sand pours over the crest on every beat', B(25), (c) => {
+  // 05c: over the edge. From a crest he walks down the slip face (+x); every
+  // beat a sheet of sand slides off the crest above him.
+  let slipPath, crestAv;
+  cut('05c', 'Over the edge: down a slip face, sand avalanching on every beat', B(25), (c) => {
+    const { W, A } = walkOn(c, slipPath, B(25), 0, { ring: 0.8, extra: { carry: true } });
     const { x, z, h } = crestAv;
-    const pos = V(x + 120 - c.local * 3, 0, z + 30 - c.local * 2);
-    pos.y = duneHeight(pos.x, pos.z) + 2.2;
-    aim(c.camera, pos, V(x - 10, h + 4, z - 40), 38);
+    const cp = A.clone().add(V(17, 0, 7));
+    cp.y = duneHeight(cp.x, cp.z) + 1.3;
+    aim(c.camera, cp, A.clone().lerp(W, 0.5).add(V(-6, 3.5, 0)), 36);
     const curve = [];
     for (let i = 0; i < 16; i++) {
-      const zz = z - 90 + i * 12;
-      const xx = crestX(x, zz, 30);
-      curve.push([xx, duneHeight(xx, zz), zz, 0.6]);
+      const zz = z - 60 + i * 8;
+      const xx = crestX(x, zz, 20);
+      curve.push([xx, duneHeight(xx, zz), zz, 0.5]);
     }
-    c.pour = { curve, uOpacity: 0.3 + 0.7 * beatEnv(c.t, 0.4), uSize: 0.4 };
+    c.pour = { curve, uOpacity: 0.3 + 0.7 * beatEnv(c.t, 0.45), uSize: 0.45 };
     c.drift = { uGust: 0.8 + c.snareEnv * 1.5 };
-    c.rings = (h) => [x + 60 + hash1(h.i) * 80, z - 60 + hash1(h.i + 5) * 120, h.w];
-    c.ringShape = [40, 3.5, 0.7, 0.8];
-    c.shake = c.kickEnv * 0.12;
-  }, () => { const z = -5200, x = crestX(800, z); crestAv = { x, z, h: duneHeight(x, z) }; });
+    c.ringShape = [10, 1.2, 0.18, 1.0];
+    c.shake = c.kickEnv * 0.08;
+    void h;
+  }, () => {
+    const z = -5200, x = crestX(800, z);
+    crestAv = { x, z, h: duneHeight(x, z) };
+    slipPath = polyPath([[x - 3, z + 2], [x + 140, z - 6]]);
+  });
 
-  cut('05d', 'Top-down over the dune sea, kicks fall like rain', B(29), (c) => {
-    const x0 = 2500, z0 = -6500;
-    const a = c.local * 0.05;
+  // ============ the dead worm: a skeleton half buried in a trough ============
+  let SK, spinePath;
+  const skeletonOn = (c, drift = 1) => { c.skeleton = { drift }; };   // drift: how much sand lies against the ribs
+  cut('05d', 'From above: a giant skeleton in the dunes ahead, kicks fall like rain', B(29), (c) => {
+    skeletonOn(c);
+    const mid = SK.mid;
+    const a = 0.3 + c.local * 0.035;
     const dive = easeIn(smoothstep(B(32), B(33), c.t));
-    const g = duneHeight(x0, z0);
-    const y = g + lerp(460, 70, dive);
-    aim(c.camera, V(x0, y, z0), V(x0 + Math.cos(a) * 25, g, z0 + Math.sin(a) * 25), 52);
-    c.rings = (h) => [x0 + (hash1(h.i * 3) - 0.5) * 700, z0 + (hash1(h.i * 3 + 1) - 0.5) * 420, h.w * (m.a.bars[barOf(h.t) - 1]?.kicks > 5 ? 1.8 : 1.2)];
+    const g = duneHeight(mid.x, mid.z);
+    const y = g + lerp(520, 110, dive);
+    aim(c.camera, V(mid.x - 40 * dive, y, mid.z + 60 * dive), V(mid.x + Math.cos(a) * 25, g, mid.z + Math.sin(a) * 25), 50);
+    const tail = spinePath(0);
+    c.walker = { x: tail.x - 60, z: tail.z + 40, heading: tail.heading, step: steps(c.t, B(29)), walk: 1, carry: true };
+    c.rings = (h) => [mid.x + (hash1(h.i * 3) - 0.5) * 760, mid.z + (hash1(h.i * 3 + 1) - 0.5) * 460, h.w * (m.a.bars[barOf(h.t) - 1]?.kicks > 5 ? 1.8 : 1.2)];
     c.ringShape = [80, 7, 2.2, 0.42];
     c.ringLife = 5;
     c.drift = { uOpacity: 0.3 };
+  }, (ctx) => {
+    // find a long trough: start east of the walker's crest, follow the lowest line south
+    const z0 = -7400;
+    const xc = crestX(1400, z0);
+    let xt = xc, low = 1e9;
+    for (let dx = 60; dx < 420; dx += 4) { const hh = duneHeight(xc + dx, z0); if (hh < low) { low = hh; xt = xc + dx; } }
+    const spine = [];
+    for (let k = 0; k <= 8; k++) {
+      const zz = z0 - k * 40;
+      let bx = xt, bl = 1e9;
+      for (let dx = -50; dx <= 50; dx += 2) { const hh = duneHeight(xt + dx, zz); if (hh < bl) { bl = hh; bx = xt + dx; } }
+      xt = bx;
+      spine.push([bx, zz]);
+    }
+    ctx.director.skel.build({ spine, sink: 7, radius: 24 });
+    spinePath = polyPath(spine);
+    const midP = spinePath(150);
+    let len = 0;
+    for (let i = 1; i < spine.length; i++) len += Math.hypot(spine[i][0] - spine[i - 1][0], spine[i][1] - spine[i - 1][1]);
+    SK = { mid: onGround(midP.x, midP.z), len };
   });
 
-  // ===================== A3: singing dunes (bars 33-48) ========================
-  const chladni = (c, { zoom = 1, light = 0.6, pan = [0, 0], perKick = false, from = 0 } = {}) => {
-    c.scene = 'chladni';
-    const ch = c.director.chladni, u = ch.uniforms;
-    if (perKick) {
-      const n = m.hitCount('kick', c.t) - m.hitCount('kick', from);
-      const last = m.recentHits('kick', c.t, 3).pop();
-      ch.setMode('uModeA', 20 + n - 1);
-      ch.setMode('uModeB', 20 + n);
-      u.uMorph.value = last ? easeOutCubic(clamp(last.age / 0.22)) : 1;
-    } else {
-      const b = m.barAt(c.t + CUT_LEAD);
-      ch.setMode('uModeA', b.bar - 1);
-      ch.setMode('uModeB', b.bar);
-      u.uMorph.value = easeOutCubic(clamp(b.phase * 2.2));
-    }
-    u.uSharp.value = 7 + 12 * Math.min(1, c.kickEnv) + 4 * m.curve('rms', c.t);
-    u.uKick.value = Math.min(1, c.kickEnv);
-    u.uTime.value = c.sim;
-    u.uRing.value = 0;
-    u.uZoom.value = zoom;
-    u.uRot.value = c.t * 0.012;
-    u.uPan.value.set(...pan);
-    const a = c.t * 0.05 + light;
-    u.uLight.value.set(Math.cos(a), Math.sin(a), 0.35);
-    u.uExposure.value = 1;
-  };
-  cut('06a', 'The desert floor as a drum skin (cymbals out)', B(33), (c) => chladni(c, { zoom: lerp(1.0, 1.3, c.u) }));
-
-  let slip2;
-  cut('06b', 'A slip face vibrating, grains dance', B(36), (c) => {
-    const { x, z, h } = slip2;
-    const pos = V(x - 60 + c.local * 0.6, 0, z + 10);
-    pos.y = duneHeight(pos.x, pos.z) + 0.28;
-    const tg = V(pos.x + 4, 0, pos.z - 1.5);
-    tg.y = duneHeight(tg.x, tg.z) + 0.05;
-    aim(c.camera, pos, tg, 34);
-    c.dust = { uBox: [8, 1.2, 8], uGust: Math.min(1.5, c.kickEnv * 2.0), uSize: 0.004, uOpacity: 0.95 };
-    c.rings = (h2) => [x + 30, z - 10, h2.w * 0.8];
-    c.ringShape = [12, 0.8, 0.12, 1.2];
-    c.motes = { uOpacity: 0.5 };
-    c.focus = 10;
-    c.exposure = 0.8;
-  }, () => { const z = -8200, x = crestX(-1200, z); slip2 = { x, z, h: duneHeight(x, z) }; });
-
-  cut('06c', 'Close on the plate: grains migrate to the new figure', B(37), (c) => chladni(c, { zoom: lerp(2.0, 2.4, c.u), pan: [0.2, -0.1], light: 2.2 }));
-
-  cut('06d', 'The walker waits in the haze', B(39), (c) => {
-    const w = walker(RIDGE, B(39), WALK_FROM);
-    c.walker = { ...w, step: 0, heading: -Math.PI / 2 };
-    const W = onGround(w.x, w.z);
-    aim(c.camera, W.clone().add(V(-70 + c.local * 6, 4, 18)), W.clone().add(V(0, 2, 0)), 14);
+  // ===================== A3: inside the skeleton (bars 33-48) ==================
+  cut('06a', 'Under the ribs in the haze; light flickers through the bones', B(33), (c) => {
+    skeletonOn(c);
+    const { W, A, fwd } = walkOn(c, spinePath, B(33), 40, { ring: 0.9, extra: { carry: true } });
+    const cp = A.clone().addScaledVector(fwd, 26).add(V(7, 0, 0));
+    cp.y = duneHeight(cp.x, cp.z) + 1.4;
+    aim(c.camera, cp, W.clone().add(V(0, 4, 0)), 34);
+    c.ringShape = [14, 1.2, 0.25, 1.0];
+    c.rays = { strength: 1.1 };
+    c.drift = { uGust: 0.3 };
+  });
+  cut('06b', 'Sand pours through the vertebrae on every beat', B(36), (c) => {
+    skeletonOn(c);
+    const p = spinePath(95), q = spinePath(115);
+    const P = onGround(p.x, p.z);
+    aim(c.camera, P.clone().add(V(-16, 3, 4)), onGround(q.x, q.z).add(V(0, 8, 0)), 34);
+    const curve = [];
+    for (let i = 0; i < 16; i++) { const r = spinePath(80 + i * 3); curve.push([r.x, duneHeight(r.x, r.z) + 9, r.z, 2.5]); }
+    c.pour = { curve, uOpacity: 0.25 + 0.75 * beatEnv(c.t, 0.4), uSize: 0.3 };
+    c.ringShape = [10, 1, 0.15, 1];
+  });
+  cut('06c', 'Beneath the jaw: the walker under a ring of teeth', B(37), (c) => {
+    skeletonOn(c);
+    const { W, A } = walkOn(c, spinePath, B(37), 270, { ring: 0.9, extra: { carry: true } });
+    const sk = c.director.skel.skull;
+    const cp = A.clone().add(V(-5 + c.u * 3, 0, 9));
+    cp.y = duneHeight(cp.x, cp.z) + 0.7;
+    aim(c.camera, cp, sk.position.clone().lerp(W, 0.35).add(V(0, 6, 0)), 46);
+    c.ringShape = [14, 1.2, 0.25, 1.0];
+    c.rays = { strength: 1.0 };
+  });
+  cut('06d', 'He stops and waits in the haze', B(39), (c) => {
+    skeletonOn(c);
+    const p = spinePath(300);
+    c.walker = { x: p.x, z: p.z, heading: p.heading + 0.6, step: 0, walk: 0, carry: true };
+    const W = onGround(p.x, p.z);
+    const fwd = V(-Math.sin(p.heading), 0, -Math.cos(p.heading));
+    const cp = W.clone().addScaledVector(fwd, -(34 - c.local * 2)).add(V(6, 0, 0));
+    cp.y = clear(cp.x, cp.z, 1.6, 6);
+    sightline(cp, W.clone().add(V(0, 1.2, 0)));   // the trough has humps: keep him in view
+    aim(c.camera, cp, W.clone().add(V(0, 5, 0)), 32);
     c.drift = { uGust: 0.2 };
   });
-
-  // bar 40: cymbals crash back in, every crest explodes into spindrift
-  let fly40;
-  cut('06e', 'Bar 40: the haze clears, every crest streams', B(40), (c) => {
-    const f = fly40(c.t);
-    aim(c.camera, f.pos, f.pos.clone().addScaledVector(f.dir, 100).add(V(0, lerp(-30, -8, easeInOut(c.u)), 0)), 48, f.roll);
+  // bar 40: the cymbals crash back in, the wind tears the sand off the bones
+  cut('06e', 'Bar 40: wind tears the sand off the bones; the whole skeleton revealed', B(40), (c) => {
+    skeletonOn(c, 1 - 0.7 * smoothstep(B(40), B(40) + 4, c.t));
+    const mid = SK.mid;
+    const u = easeOutCubic(c.u);
+    const p = spinePath(300);
+    c.walker = { x: p.x, z: p.z, heading: p.heading + 0.6, step: 0, walk: 0, carry: true, brace: 0.6 };
+    aim(c.camera, mid.clone().add(V(-150 - 160 * u, 30 + 140 * u, 110 + 120 * u)), mid.clone().add(V(0, 10, -40)), 44);
     c.post.flash = 0.35 * since(c.t, m.barTime(40), 0.3);
-    c.drift = { uGust: 0.8 + 2.0 * since(c.t, m.barTime(40), 2.0) + c.snareEnv, uOpacity: 0.7, uSize: 0.45 };
-    c.rings = (h) => [...ahead(f.pos, f.dir, h.i, 150, 600, 260, hash1), h.w * 1.3];
-    c.ringShape = [150, 12, 2.2, 0.5];
+    c.drift = { uGust: 1.0 + 2.2 * since(c.t, m.barTime(40), 2.5) + c.snareEnv, uOpacity: 0.75, uSize: 0.4 };
+    const curve = [];
+    for (let i = 0; i < 16; i++) { const r = spinePath(20 + i * 18); curve.push([r.x, duneHeight(r.x, r.z) + 14, r.z, 12]); }
+    c.pour = { curve, uOpacity: 0.6 * (0.4 + since(c.t, m.barTime(40), 3)), uSize: 0.9 };
+    c.rings = (h) => [mid.x + (hash1(h.i) - 0.5) * 300, mid.z + (hash1(h.i + 7) - 0.5) * 300, h.w * 1.4];
+    c.ringShape = [90, 8, 2.0, 0.5];
     c.glint = Math.min(1, c.hatEnv * 1.5);
-    c.shake = 0.25 * since(c.t, m.barTime(40), 1.2) + c.kickEnv * 0.15;
-  }, () => { fly40 = flight({ t0: B(40), t1: B(44) + 1, x: -2200, z: -9000, heading: Math.PI * 0.62, turns: [0, -0.35, 0.3, -0.2], period: 4 * 60 / 105, speed: (l) => 30 + l * 8, height: 30 }); });
-
-  cut('06f', 'The plate answers every kick', B(44), (c) => chladni(c, { zoom: lerp(0.95, 1.15, c.u), perKick: true, from: B(44), light: 4.0 }));
+    c.shake = 0.25 * since(c.t, m.barTime(40), 1.2) + c.kickEnv * 0.12;
+  });
+  cut('06f', 'He walks out of the jaws, the skeleton behind him', B(44), (c) => {
+    skeletonOn(c, 0.3);
+    const sk = c.director.skel.skull;
+    // from just inside the head end, through the jaw ring (~7 m past it) and out
+    const exit = (s) => { const p = spinePath(SK.len - 2); return { x: p.x + s * 0.2, z: p.z - s, heading: Math.atan2(-0.2, 1), dir: [0.2, -1] }; };
+    const { W, A } = walkOn(c, exit, B(44), 0, { ring: 1.3, extra: { carry: true } });
+    const cp = A.clone().add(V(9, 0, -34 + c.local * 1.2));
+    cp.y = clear(cp.x, cp.z, 1.8, 6);
+    sightline(cp, W.clone().add(V(0, 1.2, 0)));
+    aim(c.camera, cp, W.clone().lerp(sk.position, 0.3).add(V(0, 3, 0)), 36);
+    c.ringShape = [24, 2.0, 0.4, 0.8];
+  });
 
   cut('06g', 'Fill: dive onto a crest', B(48), (c) => {
     const x0 = crestX(5200, -2600), z0 = -2600;
@@ -312,11 +391,11 @@ export function buildShots(m) {
 
   // ========================= A4: noon (bars 49-64) =============================
   const STAKE_BAR = 57;
-  const S_STOP = 66;                                  // where the walker stops in the basin
   const stopT = () => m.barTime(56);
   const basinWalker = (t) => {
     const w = walker(basinPath, Math.min(t, stopT()), B(49));
-    return { ...w, x: w.x, z: w.z, step: t < stopT() ? w.step : 0 };
+    // he carries the thumper on his back until he plants it on bar 57
+    return { ...w, walk: t < stopT() ? w.walk : 0, carry: t < m.barTime(STAKE_BAR) - 0.3 };
   };
   const stakeAt = () => { const w = basinWalker(stopT()); return { x: w.x + 1.1, z: w.z - 1.2 }; };
   cut('07a', 'Heat: across the basin on a long lens, rings run over the hardpan', B(49), (c) => {
@@ -326,10 +405,10 @@ export function buildShots(m) {
     c.rings = (h) => { const f = footAt(basinPath, h, B(49)); return [f[0], f[1], h.w * 1.5]; };
     c.ringShape = [22, 2.0, 0.4, 0.7];
     c.ringLife = 5;
-    const W = onGround(w.x, w.z);
-    const cp = W.clone().add(V(-420, 0, 60));
+    const W = onGround(w.x, w.z), A = follow(basinPath, c.t, B(49));
+    const cp = A.clone().add(V(-420, 0, 60));
     cp.y = duneHeight(cp.x, cp.z) + 2.0;
-    aim(c.camera, cp, W.clone().add(V(0, 1.4, 0)), 8);
+    aim(c.camera, cp, A.clone().lerp(W, 0.5).add(V(0, 1.4, 0)), 8);
     c.focus = 0;
   });
   cut('07b', 'Tracking the walker, who stops on the fill', B(53), (c) => {
@@ -338,8 +417,8 @@ export function buildShots(m) {
     c.feet = footprints(basinPath, Math.min(c.t, stopT()), B(49));
     c.rings = (h) => (h.t < stopT() ? (() => { const f = footAt(basinPath, h, B(49)); return [f[0], f[1], h.w * 1.3]; })() : null);
     c.ringShape = [18, 1.6, 0.35, 0.8];
-    const W = onGround(w.x, w.z);
-    aim(c.camera, W.clone().add(V(-9, 1.6, -7)), W.clone().add(V(0, 1.3, 0)), 30);
+    const W = onGround(w.x, w.z), A = follow(basinPath, Math.min(c.t, stopT() + 0.8), B(49));
+    aim(c.camera, A.clone().add(V(-9, 1.6, -7)), W.clone().add(V(0, 1.3, 0)), 30);
   });
   const stakeCut = (c) => {
     const w = basinWalker(c.t);
@@ -405,7 +484,10 @@ export function buildShots(m) {
     const { W } = thumperOn(c);
     c.mounds = moundA5(c.t);
     const [mx0, mz0] = c.mounds[0];
-    aim(c.camera, W.clone().add(V(-7, 2.0, 3.5)), V(mx0 - 40, duneHeight(mx0, mz0) + 5, mz0 + 30), 26);
+    // over the walker's shoulder toward the mound; he and the thumper sit in the right third
+    const M = V(mx0 - 40, duneHeight(mx0, mz0) + 5, mz0 + 30);
+    const d = W.clone().sub(M).setY(0).normalize();
+    aim(c.camera, W.clone().addScaledVector(d, 9).add(V(d.z * 1.5, 1.7, -d.x * 1.5)), M, 26);
     c.pour = moundPlume(c.mounds[0], 0.35);
     c.ringHits = 'beat';
     const s = stakeAt();
@@ -495,9 +577,11 @@ export function buildShots(m) {
   });
   cut('11c', 'Bass out: the walker moves off-rhythm', B(80), (c) => {
     const { W } = b2(c);
-    const st = steps(c.t, B(80), 'hat');
-    c.walker = { ...c.walker, step: st, heading: -Math.PI / 2 };
-    aim(c.camera, W.clone().add(V(-1.8, 0.35, 1.8)), W.clone().add(V(0, 0.3, 0)), 32);
+    // walking away without rhythm: steps on the hats, not the kicks
+    const st = steps(c.t, B(80), 'hat', 0.5);
+    c.walker = { ...c.walker, x: c.walker.x - st * 0.45, step: st, walk: 1, heading: Math.PI / 2 };
+    const P = onGround(c.walker.x, c.walker.z);
+    aim(c.camera, W.clone().add(V(-5, 0.4, 3.5)), P.clone().add(V(0, 0.5, 0)), 30);
   });
   cut('11d', 'From above: the mound and its wake close in', B(81), (c) => {
     const { W, a } = b2(c);
@@ -738,14 +822,18 @@ export function buildShots(m) {
   });
 
   // ==================== final hits (bars 126-127) ================================
-  cut('19', 'Final hits: the plate snaps into a drumhead', B(126), (c) => {
-    chladni(c, { zoom: lerp(1.5, 1.1, c.u), perKick: true, from: B(126), light: 0.4 });
-    const u = c.director.chladni.uniforms;
-    u.uExposure.value = 1.35;
-    u.uSharp.value = 8 + 22 * c.u;
-    u.uRing.value = smoothstep(0.5, 0.95, c.u);
-    u.uRot.value = 0;
-    c.post.flash = 0.3 * Math.min(1, c.kickEnv);
+  cut('19', 'Final hits: from above, each hit throws a giant ring out of the dive site', B(126), (c) => {
+    const x0 = 12000 + 170 * Math.cos(Math.PI * 0.08 + 1.15), z0 = -22000;
+    const g = duneHeight(x0, z0);
+    const u = easeOutCubic(c.u);
+    aim(c.camera, V(x0 + 30, g + lerp(170, 460, u), z0 + 30), V(x0, g, z0), 52);
+    const first = m.hitCount('kick', B(126));
+    c.rings = (h) => (h.t >= B(126) - 0.05 ? [x0, z0, 1.4 + 0.5 * (h.i - first)] : null);
+    c.ringShape = [120, 9, 2.8, 0.32];
+    c.ringLife = 6;
+    c.post.flash = 0.22 * Math.min(1, c.kickEnv);
+    c.drift = { uGust: 1 + c.snareEnv, uOpacity: 0.45, uSize: 0.4 };
+    c.shake = c.kickEnv * 0.2;
   });
 
   // ============================== ring-out =====================================

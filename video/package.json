@@ -10,7 +10,8 @@
     "still": "node scripts/still.mjs",
     "render": "node scripts/render.mjs",
     "build:web": "node scripts/build-web.mjs",
-    "cuts": "node scripts/cutlist.mjs"
+    "cuts": "node scripts/cutlist.mjs",
+    "models": "node scripts/fetch-models.mjs"
   },
   "dependencies": {
     "@fontsource/michroma": "5.2.5",

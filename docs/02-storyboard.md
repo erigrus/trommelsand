@@ -9,8 +9,9 @@ sand that hums and roars when it slides.
 
 In the video **the desert is a drum skin and the band is playing it**.
 Each kick, snare and cymbal leaves a visible trace in the sand. A lone walker
-crosses the dunes, and every step booms. The drumming wakes something
-underneath. The tempo change at 2:50 is where the desert starts answering back.
+crosses the dunes, and every step booms. On the way he passes the bones of a giant worm,
+so we know what lives down there. He plants a thumper and drums for it, and the drumming
+wakes something underneath. The tempo change at 2:50 is where the desert starts answering back.
 
 The look borrows from the films' desert: huge empty dunes, ochre and burnt
 orange, a pale washed-out sky, heat haze, a giant worm, a sandstorm, two moons
@@ -22,7 +23,7 @@ footage, logos, characters or names.
 | Music (from `analysis.json`) | Picture |
 |---|---|
 | **Kick / low-end hit** (`hits.kick`) | A ring shockwave runs through the sand from the impact point (footstep, thumper, mound, worm wake) and grains jump at its front. The lens punches in by 3 %. In walking shots, **each kick is one step**. |
-| **Downbeat** | Cuts land here, 0.06 s early so the first kick lands on the new picture. The Chladni figure changes here. |
+| **Downbeat** | Cuts land here, 0.06 s early so the first kick lands on the new picture. |
 | **Riff / phrase** (`bars[].kicks`, `.fill`) | Part A changes picture every 2 or 4 bars, following the 2-bar riff and 8-bar phrases. Fills (bars 24, 32, 48, 56, 64, 98) lead into a new setup. |
 | **Snare / mid hits** (`hits.snare`) | Gusts: spindrift streams harder off every crest in view |
 | **Cymbals / hats** (`hits.hat`, `high`) | Glints on the sand, faster ripples in the 175 BPM part |
@@ -56,16 +57,18 @@ Black. Wind noise. A thin line of light appears on the horizon.
 **02 · 0:01.5 – 0:17.4 · bars 1–7 · Intro, solo guitar**
 Pre-dawn. Slow, low push across still dunes in cold indigo. Each guitar note
 lifts a thin veil of grains off the crest in front of the camera; the grains drift and settle.
-The cymbal swell from ~0:07 brightens the sky toward the horizon. The title
-**FUZZAN — TROMMELSAND** forms out of drifting sand during bars 4–6, and on bar 7 the
-wind blows it away.
+The cymbal swell from ~0:07 brightens the sky toward the horizon. On a long lens a hooded
+figure stands on a far crest against the dawn, a thumper slung across his back, waiting.
+The title **FUZZAN — TROMMELSAND** forms out of drifting sand during bars 4–6, and on bar 7 the
+wind blows it away while the camera closes in on him.
 *Sync: mid-band onsets → grain veils; `high` → sky brightness.*
 
 **03 · 0:17.4 · bar 8 downbeat · BAND ENTRY**
-The sun's rim breaks the horizon on the downbeat. One giant ring shockwave
-rolls out across the whole dune field and the sand leaps up as one. Heavy camera jolt.
+The sun's rim breaks the horizon on the downbeat, and he takes his **first step**: that
+footfall sends one giant ring shockwave across the whole dune field and the sand leaps up as one.
+Crane up and back. Heavy camera jolt.
 
-**04 · 0:17.4 – 0:38.0 · bars 8–16 · A1 "First steps"**
+**04 · 0:22.0 – 0:38.0 · bars 10–16 · A1 "First steps"**
 A lone cloaked walker on a dune ridge, in silhouette against the low gold sun.
 Their **footsteps are the kick drum**: each step booms out as a ring ripple with a puff of dust.
 Cuts every 2 bars between
@@ -74,17 +77,20 @@ Cuts every 2 bars between
 (c) top-down: a line of footprints, each ring timed to a kick.
 
 **05 · 0:38.0 – 1:14.6 · bars 17–32 · A2 "The drum field"** (brightest block)
-Fast aerial flight over an endless sea of dunes. The camera banks to a new heading every 4 bars (bars 17, 21, 25, 29).
-Cymbals make the crests glitter; snares throw plumes of sand off the ridges.
-At bar 25 (0:56.3) the flight crosses a huge lee face and a sand avalanche
-pours down it in steps, one per beat.
+A new picture every 4 bars (bars 17, 21, 25, 29). Bar 17: fast, low aerial flight into the sun,
+rings dropping ahead. Bar 21: the walker small on a long ridge, each step a pulse. Bar 25 (0:56.3):
+he goes over the edge and down a slip face, and a sheet of sand avalanches off the crest above him
+on every beat. Bar 29: high above the dunes, kicks fall like rain, and in a trough ahead lies
+the skeleton (→ 06). Cymbals make the crests glitter; snares throw plumes of sand off the ridges.
 
-**06 · 1:14.6 – 1:51.2 · bars 33–48 · A3 "Singing dunes"** (darker variation)
-Straight down from above: the desert floor works as a Chladni plate. Grains gather
-on the nodal lines into geometric figures. The figure changes on every downbeat,
-and kick strength controls how sharp it gets. Every 4 bars it intercuts with a low
-angle on a vibrating slip face. Where the cymbals pull back (~1:30–1:40) haze veils the sun
-and the image flattens.
+**06 · 1:14.6 – 1:51.2 · bars 33–48 · A3 "The bones"** (darker variation)
+At the end of A2 (bar 29) the camera, high above, finds a **giant worm skeleton** half buried in
+a trough ahead of him. In A3 he walks through it: under arching ribs (some snapped, some
+missing, sand drifted against their roots) in the haze, while light flickers between the bones;
+sand pours through the vertebrae on each beat; he passes beneath the ring of teeth at the skull
+and stops to wait. **Bar 40** (the cymbals crash back in) is a wind blast that tears the drifts off
+the bones and a crane reveals the whole skeleton. Then he walks out through the jaws.
+This is the setup for part B: what he is about to call with the thumper is the living version.
 
 **07 · 1:51.2 – 2:27.7 · bars 49–64 · A4 "Noon"** (loudest block of part A)
 Harsh white noon with heat shimmer on the horizon that scales with loudness.
@@ -149,8 +155,8 @@ Dawn bleeds into the night sky. In slow motion the worm dives back into the sand
 throws up a huge curtain of sand.
 
 **19 · 5:10.4 – 5:14.6 · bars 126–127 · final hits**
-Top-down Chladni plate again (mirroring shot 06). Each final hit snaps the pattern
-sharper, ending in one clean ring-shaped figure, like the head of a drum.
+Straight down over the place where the worm dived. Each final hit throws a bigger ring out of
+the dive site, so the whole desert is struck like the head of a drum.
 
 **20 · 5:14.6 – 5:21.4 · ring-out**
 Silence in the sand. The last grains settle. Pale dawn in a wide shot with the lone figure
@@ -176,23 +182,23 @@ light indigo gold    bright gold      hazy gold       white noon      dusty  hus
 |---|---|---|---|---|
 | 02a | 0:00.0 | – | 5.9 s | Blue hour: crane up over a crest, guitar notes lift grains |
 | 02b | 0:05.9 | 3 | 4.6 s | Macro along a knife-edge crest, sand streaming off it |
-| 02c | 0:10.5 | 5 | 4.6 s | Endless dunes, the title forms, a figure on the far ridge |
-| 02d | 0:15.1 | 7 | 2.3 s | Accelerating into the dawn, the title blows away |
-| 03 | 0:17.4 | 8 | 4.6 s | Sunrise on the downbeat, one giant shockwave |
+| 02c | 0:10.5 | 5 | 4.6 s | Long lens: a figure waits on a crest against the dawn, the title forms |
+| 02d | 0:15.1 | 7 | 2.3 s | Closing in on him; the title blows away |
+| 03 | 0:17.4 | 8 | 4.6 s | Bar 8: sunrise, and his first step sends a giant ring across the desert |
 | 04a | 0:22.0 | 10 | 4.6 s | Walker in silhouette on the crest, each step booms |
 | 04b | 0:26.5 | 12 | 4.6 s | Low behind the walker: the footprint trail leads away from us |
 | 04c | 0:31.1 | 14 | 4.6 s | Drone descends over the crest, a trail of rings |
 | 04d | 0:35.7 | 16 | 2.3 s | Front, low, the sun behind the hood |
 | 05a | 0:38.0 | 17 | 9.2 s | Low flight into the sun, rings drop ahead |
-| 05b | 0:47.1 | 21 | 9.1 s | Long ridge from the side, the tiny walker, each step a pulse |
-| 05c | 0:56.2 | 25 | 9.1 s | Under a slip face: sand pours over the crest on every beat |
-| 05d | 1:05.4 | 29 | 9.1 s | Top-down over the dune sea, kicks fall like rain |
-| 06a | 1:14.5 | 33 | 6.8 s | The desert floor as a drum skin (cymbals out) |
-| 06b | 1:21.3 | 36 | 2.3 s | A slip face vibrating, grains dance |
-| 06c | 1:23.6 | 37 | 4.6 s | Close on the plate: grains migrate to the new figure |
-| 06d | 1:28.2 | 39 | 2.3 s | The walker waits in the haze |
-| 06e | 1:30.5 | 40 | 9.1 s | Bar 40: the haze clears, every crest streams |
-| 06f | 1:39.7 | 44 | 9.1 s | The plate answers every kick |
+| 05b | 0:47.1 | 21 | 9.1 s | Long ridge from the side, the walker, each step a pulse |
+| 05c | 0:56.2 | 25 | 9.1 s | Over the edge: down a slip face, sand avalanching on every beat |
+| 05d | 1:05.4 | 29 | 9.1 s | From above: a giant skeleton in the dunes ahead, kicks fall like rain |
+| 06a | 1:14.5 | 33 | 6.8 s | Under the ribs in the haze; light flickers through the bones |
+| 06b | 1:21.3 | 36 | 2.3 s | Sand pours through the vertebrae on every beat |
+| 06c | 1:23.6 | 37 | 4.6 s | Beneath the jaw: the walker under a ring of teeth |
+| 06d | 1:28.2 | 39 | 2.3 s | He stops and waits in the haze |
+| 06e | 1:30.5 | 40 | 9.1 s | Bar 40: wind tears the sand off the bones; the whole skeleton revealed |
+| 06f | 1:39.7 | 44 | 9.1 s | He walks out of the jaws, the skeleton behind him |
 | 06g | 1:48.8 | 48 | 2.3 s | Fill: dive onto a crest |
 | 07a | 1:51.1 | 49 | 9.1 s | Heat: across the basin on a long lens, rings run over the hardpan |
 | 07b | 2:00.2 | 53 | 9.2 s | Tracking the walker, who stops on the fill |
@@ -227,11 +233,12 @@ light indigo gold    bright gold      hazy gold       white noon      dusty  hus
 | 17d | 4:45.7 | 117 | 8.2 s | High above: the whole dune sea pulses with light |
 | 17e | 4:53.9 | 120 | 8.2 s | Climax: flying toward the moons |
 | 18 | 5:02.1 | 123 | 8.2 s | Dawn bleeds in; the worm dives in slow motion |
-| 19 | 5:10.3 | 126 | 4.3 s | Final hits: the plate snaps into a drumhead |
+| 19 | 5:10.3 | 126 | 4.3 s | Final hits: from above, each hit throws a giant ring out of the dive site |
 | 20 | 5:14.6 | 127 | 6.8 s | Ring-out: dawn, a lone figure, the title, fade |
 
 ### Changes from the first storyboard
 
+v2:
 - Shot 04: the boot macro became a low shot behind the walker, with the footprint trail
   leading away from the camera. The figure doesn't hold up at macro distance.
 - Shot 05 (bar 25): the avalanche is sand pouring over a crest line on every beat.
@@ -243,8 +250,17 @@ light indigo gold    bright gold      hazy gold       white noon      dusty  hus
 - Shot 14f/15a: a visible storm wall rises ahead during the bar-98 fill and hits on the bar-99 downbeat.
 - Shot 16b: the calm starts exactly where the bass drops out (4:17.6), not on the next bar.
 
-![cuts 02a-10](img/v2-contact-1.jpg)
-![cuts 11a-20](img/v2-contact-2.jpg)
+v3:
+- Part A got a story. The figure waits in the intro (02c/02d), and his first step is the band entry (03).
+  He walks along the crest (04), along a ridge and down a slip face (05b/05c). The camera then finds a
+  giant worm skeleton (05d), and he walks through it in A3 (06a–06f) instead of the Chladni plate.
+- The Chladni plate is gone everywhere. The final hits (19) are rings from the worm's dive site, seen from above.
+- The walker is a rigged, animated figure with skinned cloth (see [03-renderer](03-renderer.md)), so close
+  shots work again (04b, 09, 11a, 11c).
+- Cameras on a walking figure follow a smoothed, lagging anchor, so they no longer jump with each step.
+
+![cuts 02a-10](img/v3-contact-1.jpg)
+![cuts 11a-20](img/v3-contact-2.jpg)
 
 ## Technical approach
 

@@ -20,7 +20,9 @@ video/                       three.js app (Vite) + render scripts
   src/rig.js                 camera/staging helpers (aim, crest paths, flights, basins)
   src/look.js                colour script keyframes
   src/director.js            turns time t into a frame (world, uniforms, post)
-  src/world/*                terrain (dune heightfield), sky, particles, figures, chladni
+  src/world/*                terrain (dune heightfield), sky, particles, figures (worm, thumper,
+                             fallback walker), walker.js (rigged walker + skinned cloth), bones.js (worm skeleton)
+  public/models/             downloaded models (git-ignored; `npm run models`)
   src/post/*                 grade/bloom/grain/titles
   scripts/still.mjs          render PNG stills (use these to look at your work)
   scripts/render.mjs         chunked, resumable mp4 render, muxed with the song
@@ -30,6 +32,7 @@ video/                       three.js app (Vite) + render scripts
 
 ```bash
 npm install && npx playwright install chromium   # once
+npm run models                                   # once: download the rigged walker (public/models/, not committed)
 npm run dev                                      # preview with audio: http://localhost:5173 (?t=200 to start at 200 s)
 npm run still -- --shots                         # one PNG per shot -> video/out/stills/
 npm run still -- --t 17.4,56.3,200.7             # PNGs at specific times (--mb 6 for motion blur)
@@ -67,7 +70,16 @@ Only needed if the analysis code changes. Never hand-edit `analysis.json`.
    section edge (`npm run still -- --t a,b,c,...`) and check that the picture changes on the downbeat.
 10. Known traps: a lathe axis gives zero normals (NaN → black frame, use `sanitizeNormals`); stacked
     rings from earlier kicks can raise a wall of sand at a cut (gate rings by `h.t`); camera height
-    must come from the ground *at the camera*, not at the subject (the director guards this, but frame it right).
+    must come from the ground *at the camera*, not at the subject (the director guards this, but frame it right);
+    a low camera in a trough can lose the figure behind a hump (use `sightline()` from rig.js).
+    Editing `src/` while a still/render script runs makes Vite reload the page and the script dies
+    ("Execution context was destroyed"): wait, or rerun.
+11. **Walking shots:** move the walker with `steps()` / `walker()` (smooth, one step per kick) and aim
+    cameras at `follow()` (a lagging, smoothed anchor), never at the raw walker position. Otherwise the
+    camera copies every step. `walkOn()` in timeline.js wires up all three plus footprints and rings.
+12. **Models:** the rigged walker (`video/public/models/Soldier.glb`) is a Mixamo character from the three.js
+    examples. It is downloaded by `npm run models` and **never committed**. Without it, the director falls
+    back to the procedural `Walker` in `figures.js`, so code must keep working in both cases.
 
 ## Conventions
 

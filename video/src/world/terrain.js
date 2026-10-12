@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { U, COMMON_GLSL } from './shared.js';
-import { DUNE_GLSL, DISPLACE_GLSL } from './terrain-fn.js';
+import { DUNE_GLSL, DISPLACE_GLSL, duneHeight } from './terrain-fn.js';
 
 export const MAX_FEET = 24;
 
@@ -25,6 +25,7 @@ ${DUNE_GLSL}
 ${DISPLACE_GLSL}
 uniform float uDrop;
 uniform vec4 uFeet[${MAX_FEET}];   // x, z, heading, depth (0 = unused)
+uniform vec3 uNear;                 // near grid: centre x, z, half size it fully covers
 varying vec3 vWorld;
 
 // Footprints: an oval dent with a small pushed-up rim.
@@ -65,6 +66,9 @@ float fineHeight(vec2 q, bool near) {
 
 void main() {
   vec3 p = vWorld;
+  // the coarse grid only fills in beyond the fine one: its long triangles span
+  // troughs above the real floor and would poke through (hiding the walker)
+  if (uDrop > 0.0 && max(abs(p.x - uNear.x), abs(p.z - uNear.y)) < uNear.z) discard;
   vec3 toCam = uCamPos - p;
   float dist = length(toCam);
   vec3 V = toCam / dist;
@@ -172,11 +176,12 @@ function grid(size, segs) {
 export class Terrain {
   constructor(scene, { nearSegs = 640, nearSize = 1600, farSegs = 320, farSize = 14000 } = {}) {
     this.feet = { value: Array.from({ length: MAX_FEET }, () => new THREE.Vector4()) };
+    this.near = { value: new THREE.Vector3(0, 0, nearSize / 2 - 2 * (nearSize / nearSegs)) };
     this.levels = [
       { size: nearSize, segs: nearSegs, drop: 0 },
       { size: farSize, segs: farSegs, drop: 2.0 },
     ].map((l) => {
-      const uniforms = { ...U, uCenter: { value: new THREE.Vector2() }, uDrop: { value: l.drop }, uFeet: this.feet };
+      const uniforms = { ...U, uCenter: { value: new THREE.Vector2() }, uDrop: { value: l.drop }, uFeet: this.feet, uNear: this.near };
       const mat = new THREE.ShaderMaterial({ vertexShader: vert, fragmentShader: frag, uniforms });
       const mesh = new THREE.Mesh(grid(l.size, l.segs), mat);
       mesh.frustumCulled = false;
@@ -189,6 +194,31 @@ export class Terrain {
     for (const l of this.levels) {
       l.uniforms.uCenter.value.set(Math.round(x / l.step) * l.step, Math.round(z / l.step) * l.step);
     }
+    const c = this.levels[0].uniforms.uCenter.value;
+    this.near.value.x = c.x;
+    this.near.value.y = c.y;
+  }
+
+  /**
+   * Dune height as the grid actually draws it at (x, z): exact on the vertex
+   * lattice, linear across each triangle. On a sharp crest this is lower than
+   * duneHeight(), so figures stand on this to keep their feet on the sand.
+   * Call after follow(). Rings and mounds are left out.
+   */
+  drawnHeight(x, z) {
+    for (const l of this.levels) {
+      const c = l.uniforms.uCenter.value, half = l.size / 2 - l.step;
+      if (Math.abs(x - c.x) > half || Math.abs(z - c.y) > half) continue;
+      const s = l.step, i = Math.floor(x / s), j = Math.floor(z / s);
+      const u = x / s - i, v = z / s - j;
+      const h = (a, b) => duneHeight(a * s, b * s);
+      // PlaneGeometry (rotated to xz) splits each cell along (x0, z1)-(x1, z0)
+      const y = u + v <= 1
+        ? h(i, j) + u * (h(i + 1, j) - h(i, j)) + v * (h(i, j + 1) - h(i, j))
+        : h(i + 1, j + 1) + (1 - u) * (h(i, j + 1) - h(i + 1, j + 1)) + (1 - v) * (h(i + 1, j) - h(i + 1, j + 1));
+      return y - l.uniforms.uDrop.value;
+    }
+    return duneHeight(x, z);
   }
 
   /** feet: [[x, z, heading, depth], ...] newest last */

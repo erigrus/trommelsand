@@ -15,7 +15,7 @@ audio/trommelsand.mp3 ──► tools/analyze.py ──► analysis/analysis.jso
                                 │
   look.js (colour script) ──►  director.js  ◄── timeline.js (55 cuts) ◄── rig.js (camera + staging helpers)
                                 │
-           world/*  (terrain, sky, particles, figures, chladni)
+           world/*  (terrain, sky, particles, walker, worm, skeleton)
                                 │
            post/*   (god rays + flare → bloom → tone map → grade, shimmer, storm streaks, titles, grain)
                                 │
@@ -49,14 +49,29 @@ dive slowed (×0.45, 5:02–5:10). Grains, rings and wind use it; camera moves u
 | File | What | Notes |
 |---|---|---|
 | `world/terrain-fn.js` | `duneHeight(x,z)`, `duneEnv(x,z)` in JS + GLSL; ring/mound GLSL | Main transverse ridges ~600 m apart and 55 m high, with a 15 % slip face (~31°, the angle of repose). A 260 m secondary set, a 2.4 km swell, meandering crests. `duneEnv` (0 = flat basin, 1 = dune sea) comes from integer-hash value noise that gives identical bits in JS (`Math.imul`) and GLSL (`uint`). **Keep both versions identical.** |
-| `world/terrain.js` | Two camera-following grids (near 640², far 320²), custom shader | Lattice-snapped (no swimming). Per-pixel normals, ripples in two octaves (anti-aliased with `fwidth`), footprints, sun self-shadow ray-march, curvature AO, pale crests, cracked hardpan in basins. Lighting is sun + sky + warm bounce + backlit sheen. Glints, moonlight, glowing ring fronts at night |
+| `world/terrain.js` | Two camera-following grids (near 640², far 320²), custom shader | Lattice-snapped (no swimming). The far grid is dropped 2 m and discards fragments where the near grid exists (its long triangles would poke through troughs). `drawnHeight(x, z)` gives the height of the triangle actually drawn, which is what figures stand on. Per-pixel normals, ripples in two octaves (anti-aliased with `fwidth`), footprints, sun self-shadow ray-march, curvature AO, pale crests, cracked hardpan in basins. Lighting is sun + sky + warm bounce + backlit sheen. Glints, moonlight, glowing ring fronts at night |
 | `world/shared.js` | Shared uniforms `U` + GLSL helpers | Sky gradient with sun scattering. Height fog with per-channel extinction. Billowing storm dust. **Storm wall** (`uStormWall`: plane + billowing top) |
 | `world/sky.js` | Sky dome (writes alpha 0 for the ray pass) | Limb-darkened sun, high cloud streaks, stars, Milky Way, two haloed moons, storm |
 | `world/particles.js` | Stateless point particles, 5 modes | `0` dust (hops at ring fronts), `1` spindrift off crests (crests found by curvature; snare = gusts), `2` lens motes (bokeh), `3` rising spice, `4` sand pouring off a 16-point curve (worm body, crest line, mound). All forward-scatter when backlit. Sub-pixel grains fade out instead of flickering |
-| `world/figures.js` | Walker, thumper, worm | Shared rim light (`RIM`) and wind (`WIND`) uniforms. Cloth flutters in the vertex shader. Walker: folded robe, cape, pointed hood, pack, staff, scarf. Thumper: tripod pole with a banded hammer that slams per beat. Worm: overlapping armour rings, sand-dusted vertex colours, 3 tapered petals, 3 rows of teeth. **Lathe axes need `sanitizeNormals`**, because zero normals turned into NaN and blacked out frames |
-| `world/chladni.js` | Top-down vibrating plate | Relief-lit sand piles on brushed bronze. Mode per bar or per kick; grains migrate between figures; `uRing` morphs to a drumhead |
+| `world/walker.js` | Rigged walker (`RiggedWalker`) | Loads `public/models/Soldier.glb` (Mixamo skeleton + walk/idle clips; `npm run models`, not committed). The armour above the knees is discarded per vertex (`aHide`). Robe, cape, hood, sleeves, sash and scarf are lathed tubes built in the model's bind space (cm, Z up) and **skinned to the same skeleton** with hand-set weights (spine above the hips, hips + upper legs below). Per-vertex `aFlutter` limits wind flutter to the robe hem, cape edge and scarf. Generated woven-cloth textures with a frayed hem. `place(x, z, heading, step, {walk, brace, carry, wind, windStrength, t})` samples the walk clip at an absolute time from the step count (deterministic), puts the staff in the right hand and the thumper pack on the back while `carry` is set. `load()` tries `Soldier.glb`, then `Soldier.json` (the same model as glTF JSON, written by `build:web` for hosts that don't serve .glb), and returns `null` if neither exists; the director then uses the procedural `Walker` |
+| `world/figures.js` | Fallback walker, thumper, worm | Shared rim light (`RIM`) and wind (`WIND`) uniforms. Thumper: tripod pole with a banded hammer that slams per beat. Worm: 260×48 segments, generated skin (`wormSkin`: plate lips, seams, wrinkles, pits, cracks, packed sand) as colour + bump map, sand-dusted vertex colours, 3 textured petals, 5 rows of teeth, dark throat with flesh rings. **Lathe axes need `sanitizeNormals`**, because zero normals turned into NaN and blacked out frames |
+| `world/bones.js` | `WormSkeleton`, the dead worm of part A3 | `build({spine, sink, radius})` once from a spine polyline (tail → head): vertebra drums, hoop ribs that rise from the spine and almost meet overhead (a few broken), a jaw ring with 150 instanced teeth at the head. Vertex colours tint bone toward sand where it is close to or under the dunes. `skull` and `curve` are exposed for staging |
 | `post/post.js` | Rays → bloom → OutputPass (ACES) → Grade, + motion-blur accumulation | Rays: radial blur of open sky around the sun, anamorphic streak and ghosts when the sun is visible. NaN/Inf clamp before bloom. Grade: contrast, saturation, split toning, lift/gain, chromatic aberration, heat shimmer, storm streaks, title dissolve, flash/fade, vignette, grain |
-| `rig.js` | Staging helpers | `aim`, `clear`, `crestX`, `ridgePath` (follows a crest), `findBasin`, `flight` (terrain-following flight with phrase-timed turns), `ahead`, `wormBody` |
+| `rig.js` | Staging helpers | `aim`, `clear`, `sightline` (lift a camera until a target is visible over the dunes), `crestX`, `ridgePath` (follows a crest), `findBasin`, `flight` (terrain-following flight with phrase-timed turns), `ahead`, `wormBody` |
+
+## Walking and following (timeline.js)
+
+A step per kick is the core sync, but a figure that jumps forward on each kick, and a camera that
+jumps with it, look mechanical. So:
+
+- `rawSteps(t, from, kind)` counts hits since `from`: an integer per hit, linear in between
+  (gap clamped to 0.12–1.1 s). `steps()` averages 7 samples over 0.7 s, so the body moves continuously.
+- `walker(path, t, from, s0)` places the figure on a path at `s0 + steps · STEP` and sets `walk`
+  (clip speed) from the smoothed speed. It stops by itself when the kicks stop.
+- `follow(path, t, from, s0)` is the camera's anchor: the walker's position averaged over the last
+  0.2–1.6 s. It lags and glides; aim and place cameras relative to it, never to the raw position.
+- `walkOn(c, path, from, s0, {ring})` wires it up for a cut: walker, footprints, and a ring from each
+  footfall (`footAt`). It returns `{w, W, fwd, A}` (walker, his position, forward vector, anchor).
 
 ## Ring shockwaves
 
