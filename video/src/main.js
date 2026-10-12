@@ -43,8 +43,10 @@ window.music = music;
 if (RENDER) {
   document.body.classList.add('render');
   // Render one frame and return it as a data URL (JPEG unless png requested).
+  // ?mb=N averages N sub-frames per frame (motion blur, 180° shutter)
+  const mb = +(params.get('mb') ?? 1);
   window.renderFrame = (frame, type = 'image/jpeg', q = 0.95) => {
-    director.render(frame / music.fps);
+    director.renderFrame(frame / music.fps, { samples: mb });
     return canvas.toDataURL(type, q);
   };
   window.__ready = true;

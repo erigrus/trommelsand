@@ -16,7 +16,8 @@ tools/analyze.py             music analysis -> analysis/analysis.json (+ plots)
 analysis/analysis.json       tempo map, bars, beats, hits (kick/snare/hat), events, curves @25fps
 docs/                        process log, analysis notes, storyboard, renderer guide, handoff
 video/                       three.js app (Vite) + render scripts
-  src/timeline.js            THE STORYBOARD AS CODE: one entry per shot
+  src/timeline.js            THE STORYBOARD AS CODE: 55 cuts, each pinned to a bar
+  src/rig.js                 camera/staging helpers (aim, crest paths, flights, basins)
   src/look.js                colour script keyframes
   src/director.js            turns time t into a frame (world, uniforms, post)
   src/world/*                terrain (dune heightfield), sky, particles, figures, chladni
@@ -31,9 +32,10 @@ video/                       three.js app (Vite) + render scripts
 npm install && npx playwright install chromium   # once
 npm run dev                                      # preview with audio: http://localhost:5173 (?t=200 to start at 200 s)
 npm run still -- --shots                         # one PNG per shot -> video/out/stills/
-npm run still -- --t 17.4,56.3,200.7             # PNGs at specific times
+npm run still -- --t 17.4,56.3,200.7             # PNGs at specific times (--mb 6 for motion blur)
+npm run cuts                                     # cut list as Markdown (paste into docs/02-storyboard.md)
 npm run render -- --from 17 --to 40 --w 960 --h 540   # draft clip with audio
-npm run render                                   # final 1920x1080, ~8036 frames
+npm run render                                   # final 1920x1080, ~8036 frames, motion blur --mb 6
 npm run build:web                                # static web build -> video/dist (mobile preview page)
 ```
 
@@ -61,6 +63,11 @@ Only needed if the analysis code changes. Never hand-edit `analysis.json`.
 7. Keep the docs current: add a dated entry to `docs/00-process.md` per session, update the status
    table in `docs/04-handoff.md`, and update `docs/02-storyboard.md` if a shot changes.
 8. Delete `video/out/chunks/` before re-rendering after a visual change. Existing chunks are reused.
+9. Check sync with **frame strips**, not single stills: render 8 frames 0.12 s apart around a
+   section edge (`npm run still -- --t a,b,c,...`) and check that the picture changes on the downbeat.
+10. Known traps: a lathe axis gives zero normals (NaN → black frame, use `sanitizeNormals`); stacked
+    rings from earlier kicks can raise a wall of sand at a cut (gate rings by `h.t`); camera height
+    must come from the ground *at the camera*, not at the subject (the director guards this, but frame it right).
 
 ## Conventions
 

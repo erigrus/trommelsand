@@ -4,6 +4,7 @@
 //   npm run render -- --from 17 --to 40          a range in seconds (preview)
 //   npm run render -- --w 960 --h 540            half resolution draft
 //   options: --chunk 250 (frames per chunk)  --crf 14  --format jpeg|png
+//            --mb 6 (motion-blur sub-frames per frame, default 6; 1 = off)
 //            --quality 1  --swiftshader  --headed  --out out
 //
 // Chunks land in out/chunks/<w>x<h>/ as finished mp4s. Re-running skips chunks
@@ -22,7 +23,7 @@ const chunk = +(a.chunk ?? 250);
 const crf = String(a.crf ?? 14);
 const format = a.format === 'png' ? 'png' : 'jpeg';
 const outDir = path.resolve(VIDEO_DIR, a.out ?? 'out');
-const chunkDir = path.join(outDir, 'chunks', `${w}x${h}`);
+const chunkDir = path.join(outDir, 'chunks', `${w}x${h}_mb${+(a.mb ?? 6)}`);
 fs.mkdirSync(chunkDir, { recursive: true });
 
 function run(args, stdin = false) {
@@ -33,7 +34,8 @@ function run(args, stdin = false) {
   return { p, done };
 }
 
-const app = await openApp({ w, h, quality: +(a.quality ?? 1), swiftshader: !!a.swiftshader, headed: !!a.headed });
+const mb = +(a.mb ?? 6);
+const app = await openApp({ w, h, quality: +(a.quality ?? 1), swiftshader: !!a.swiftshader, headed: !!a.headed, mb });
 const { fps, duration, frames } = app.meta;
 console.log(`renderer: ${app.gl}`);
 if (/swiftshader/i.test(app.gl) && !a.swiftshader) console.warn('WARNING: rendering on the CPU (SwiftShader). Try --headed for GPU.');

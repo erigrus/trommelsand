@@ -68,7 +68,8 @@ Self-similarity (beat-synchronous) — the two big blocks are part A and part B:
 
 ## What the renderer gets (`analysis/analysis.json`)
 
-- `tempo_regions`, `beats`, `downbeats`, `bars` (bar number → time)
+- `tempo_regions`, `beats`, `downbeats`, `bars` (bar number → time, plus per bar: `energy`, `bright`,
+  `kicks`, `snares`, `hats`, and `fill` = hits in the last beat, which leads into the next bar)
 - `sections` (table above, plus per-section band energies)
 - `events.stops`, `events.bass_out`
 - `hits.kick`, `hits.snare`, `hits.hat`: `[time, weight 0..1]` from band-limited onsets of the
@@ -78,6 +79,16 @@ Self-similarity (beat-synchronous) — the two big blocks are part A and part B:
 - `curves.*` sampled at the video frame rate (25 fps), normalised 0..1:
   `rms`, `rms_slow`, `sub` (20–90 Hz, kick/bass), `lowmid` (90–400 Hz, fuzz body),
   `mid` (0.4–2.5 kHz, riff), `high` (2.5–11 kHz, cymbals), `onset`, `centroid`, `flatness`
+
+## Bar-level structure (used for cutting)
+
+- **Part A** (bars 8–72) is one long groove. The riff runs over 2 bars, and its first bar is the
+  heavier one (more kicks). Drum fills sit in the last beat of 8-bar phrases: bars 24, 32, 48, 56, 64.
+  Bar 52 has the biggest fill of part A (10 kicks).
+- **Bars 34–39** drop the cymbals (`bright` ≈ 0.1–0.2), and **bar 40** (1:30.6) brings them back at once.
+- **Part B:** the bass alternates per bar in 78–82, bar 84 is the loudest of the build, bar 98 is a
+  fill into the storm, bars 99/100/103/104 are sparse (the half-time stabs), bar 107 has no bass, and bar 125 has no hits
+  (a held chord).
 
 ## Method notes / pitfalls hit
 

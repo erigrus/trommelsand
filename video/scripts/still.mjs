@@ -3,7 +3,7 @@
 //   npm run still -- --t 17.5,60,201            specific times (seconds)
 //   npm run still -- --shots                    middle of every shot
 //   npm run still -- --shots --at 0.1           10 % into every shot
-//   options: --w 960 --h 540 --quality 1 --out out/stills --swiftshader --headed
+//   options: --w 960 --h 540 --quality 1 --mb 1 --out out/stills --swiftshader --headed
 import fs from 'node:fs';
 import path from 'node:path';
 import { openApp, parseArgs, VIDEO_DIR } from './lib.mjs';
@@ -13,7 +13,7 @@ const w = +(a.w ?? 960), h = +(a.h ?? 540);
 const out = path.resolve(VIDEO_DIR, a.out ?? 'out/stills');
 fs.mkdirSync(out, { recursive: true });
 
-const app = await openApp({ w, h, quality: +(a.quality ?? 1), swiftshader: !!a.swiftshader, headed: !!a.headed });
+const app = await openApp({ w, h, quality: +(a.quality ?? 1), swiftshader: !!a.swiftshader, headed: !!a.headed, mb: +(a.mb ?? 1) });
 console.log(`renderer: ${app.gl}`);
 
 let jobs = [];

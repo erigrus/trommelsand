@@ -25,7 +25,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
  * renderer string. "SwiftShader" means CPU rendering (slow but correct).
  * On Linux without a display, use --headed under xvfb-run or accept SwiftShader.
  */
-export async function openApp({ w = 1920, h = 1080, quality = 1, swiftshader = false, headed = false } = {}) {
+export async function openApp({ w = 1920, h = 1080, quality = 1, swiftshader = false, headed = false, mb = 1 } = {}) {
   const server = await createServer({
     root: VIDEO_DIR,
     configFile: path.join(VIDEO_DIR, 'vite.config.js'),
@@ -46,7 +46,7 @@ export async function openApp({ w = 1920, h = 1080, quality = 1, swiftshader = f
   const page = await browser.newPage({ viewport: { width: Math.min(w, 1920), height: Math.min(h, 1080) } });
   page.on('pageerror', (e) => console.error('[page error]', e.message));
   page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') console.error(`[page ${m.type()}]`, m.text()); });
-  await page.goto(`${url}?render&w=${w}&h=${h}&quality=${quality}`);
+  await page.goto(`${url}?render&w=${w}&h=${h}&quality=${quality}&mb=${mb}`);
   await page.waitForFunction('window.__ready === true', null, { timeout: 180000 });
   const gl = await page.evaluate(() => window.glRenderer);
   const meta = await page.evaluate(() => ({

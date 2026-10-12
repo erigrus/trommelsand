@@ -334,7 +334,26 @@ def main():
         stops=runs((curves["rms"] < 0.22) & (curves["rms_slow"] > 0.4), 3),
         bass_out=runs(scipy.ndimage.gaussian_filter1d(curves["sub"], 3) < 0.12, int(0.5 * a.fps)),
     )
-    bars = [dict(bar=i + 1, t=round(float(t), 3)) for i, t in enumerate(down_t)]
+    # per-bar features: lets the picture follow riff accents, fills and drops
+    bar_edges = list(down_t) + [dur]
+    rms_v = curves["rms"]
+
+    def count(kind, a0, b0, wmin=0.3):
+        return sum(1 for t, w in hits[kind] if a0 <= t < b0 and w >= wmin)
+
+    bars = []
+    for i, t in enumerate(down_t):
+        a0, b0 = float(bar_edges[i]), float(bar_edges[i + 1])
+        sl = slice(int(a0 * a.fps), max(int(a0 * a.fps) + 1, int(b0 * a.fps)))
+        last = a0 + (b0 - a0) * 0.75
+        bars.append(dict(
+            bar=i + 1, t=round(float(t), 3),
+            energy=round(float(np.mean(rms_v[sl])), 3),
+            bright=round(float(np.mean(curves["high"][sl])), 3),
+            kicks=count("kick", a0, b0), snares=count("snare", a0, b0), hats=count("hat", a0, b0),
+            # hits in the last beat: drum fills that lead into the next bar
+            fill=count("kick", last, b0) + count("snare", last, b0) + count("hat", last, b0),
+        ))
 
     out = dict(
         file=os.path.basename(a.audio), duration=round(dur, 3), fps=a.fps,

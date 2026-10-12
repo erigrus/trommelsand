@@ -9,7 +9,8 @@
     "build": "vite build",
     "still": "node scripts/still.mjs",
     "render": "node scripts/render.mjs",
-    "build:web": "node scripts/build-web.mjs"
+    "build:web": "node scripts/build-web.mjs",
+    "cuts": "node scripts/cutlist.mjs"
   },
   "dependencies": {
     "@fontsource/michroma": "5.2.5",

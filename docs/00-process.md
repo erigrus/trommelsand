@@ -94,3 +94,47 @@ in order, starting with 03 (the shockwave) and 04 (the walker).
 - `npm run build:web` creates a static build with relative paths (`video/dist/`). It is published as a
   private claude.ai page: https://claude.ai/artifact/ASeqDKiXovyyoWkscGa99o
 - The title font falls back to the Google Fonts copy of Michroma if the bundled file is blocked.
+
+## 2026-10-12 · v2: "beautify everything, match the music"
+
+Feedback on the first pass: it looks cheap, and some sections are boring or don't follow the
+beat and section changes.
+
+**Music, bar by bar.** Added per-bar features to the analysis (energy, brightness, kick/snare/hat
+counts, fills). They show the 2-bar riff accent, the 8-bar fills, the cymbal drop in bars 34–39 with
+the return on bar 40, the bar-by-bar bass in 78–82, and the held chord in 125
+(→ [01-analysis](01-analysis.md#bar-level-structure-used-for-cutting)).
+
+**Why it looked flat:** the main dunes were 2.5 km apart, which makes slopes of ~3 %. They are now
+~600 m apart and 55 m high, with a 31° slip face, a secondary ridge set, meandering crests and flat
+basins in between.
+
+**Look:** rebuilt the sand lighting (sun + sky + warm bounce, backlit sheen, curvature AO, pale crests,
+cracked hardpan), atmosphere (per-channel extinction, sun scattering, billowing storm dust, a storm wall),
+sky (limb-darkened sun, dawn cloud streaks, Milky Way, haloed moons), a pass for light rays and
+an anamorphic sun flare, and a split-tone grade with heat shimmer, storm streaks and chromatic aberration.
+
+**Figures:** a folded robe with cape, pointed hood, pack, staff and fluttering scarf, with rim light when backlit;
+a tripod thumper whose hammer slams per beat; a worm with overlapping armour rings, sand-dusted top,
+three tapered petals and three rows of teeth, pouring sand.
+
+**Particles:** soft forward-scattering grains, spindrift streaming off real crests (gusting on snares),
+lens motes, spice, and sand pouring along any curve (worm, crest line, mound).
+
+**Timeline:** 20 shots became 55 cuts, every one pinned to a bar
+(→ [cut list](02-storyboard.md#cut-list-as-built)). Kicks always do something visible (ring, hop, lens
+punch); section edges each get a moment; the calm starts on the exact bass drop-out at 4:17.6.
+
+**Motion blur** for renders: 6 sub-frames over a 180° shutter, never across a cut.
+
+Bugs found by looking:
+- Zero normals on lathe axes became NaN, which bloomed into a black frame. Fixed with normal
+  sanitising, plus a NaN clamp before bloom.
+- A camera ended up under a basin that isn't quite flat. The director now guards camera height
+  against dunes, rings and mounds.
+- At the breach, rings from every recent kick stacked into a wall of sand. Rings are now gated by hit time.
+- Ripples, glints and grain albedo aliased into speckle at grazing angles. They are faded out with `fwidth`.
+- The motion-blur accumulator was wiped by `autoClear`, leaving 1/6 brightness.
+- The banding seen on early contact sheets came from the sheet tool (PNG → YUV), not the render.
+
+Not done here: watching it in real time with the song, and checking GPU speed. Both happen at home.
