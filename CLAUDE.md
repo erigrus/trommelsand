@@ -34,6 +34,7 @@ npm run still -- --shots                         # one PNG per shot -> video/out
 npm run still -- --t 17.4,56.3,200.7             # PNGs at specific times
 npm run render -- --from 17 --to 40 --w 960 --h 540   # draft clip with audio
 npm run render                                   # final 1920x1080, ~8036 frames
+npm run build:web                                # static web build -> video/dist (mobile preview page)
 ```
 
 Analysis (repo root, Python 3.10+): `pip install -r requirements.txt && python tools/analyze.py audio/trommelsand.mp3`.

@@ -28,7 +28,8 @@ npm run dev            # → http://localhost:5173
 ```
 
 Preview controls: **space** play/pause · **←/→** one bar · **shift+←/→** previous/next shot ·
-click or drag the timeline · **q** switch between full and half resolution · **h** hide the HUD.
+click or drag the timeline · resolution menu (270p–1080p) · **h** or the Info button toggle the HUD.
+There are touch buttons for all of these.
 `?t=200` starts at 200 s. `?quality=0.5` gives fewer vertices and particles for weak GPUs.
 The HUD shows the shot, the section, live kick/snare/hat envelopes, fps, and the GPU in use.
 
@@ -42,6 +43,14 @@ npm run render                                   # final 1920x1080
 
 Check the `renderer:` line printed by the scripts. It should name your GPU. If it says SwiftShader,
 add `--headed`. Delete `out/chunks/` after any visual change, because finished chunks are reused.
+
+### Web preview (phone)
+
+A private web build of the preview player is published at
+https://claude.ai/artifact/ASeqDKiXovyyoWkscGa99o and renders live on the device; phones default to 360p.
+To update it, run `npm run build:web` in `video/`, then republish `dist/` (page = `dist/page.html`,
+plus `dist/assets/*`). In Claude Code, ask Claude to republish the artifact at that URL.
+Other static hosts can serve `dist/index.html` as-is.
 
 ## 2. Continue with Claude Code locally
 

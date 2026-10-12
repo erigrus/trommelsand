@@ -2,41 +2,90 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FUZZAN — Trommelsand</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Trommelsand Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&family=IBM+Plex+Mono:wght@400;500&display=swap" />
   <style>
-    :root { --bg: #0b0806; --fg: #f0dcc0; --dim: #8a7660; --accent: #e89a4a; --bar: #2a1f17; }
-    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; overflow: hidden; }
-    #stage { position: absolute; inset: 0 0 86px 0; display: flex; align-items: center; justify-content: center; }
-    canvas { max-width: 100%; max-height: 100%; aspect-ratio: 16 / 9; background: #000; }
-    body.render #stage { inset: 0; }
-    body.render #hud, body.render #controls { display: none; }
-    #hud { position: absolute; top: 10px; left: 12px; pointer-events: none; text-shadow: 0 1px 2px #000; white-space: pre; }
-    #controls { position: absolute; left: 0; right: 0; bottom: 0; height: 86px; padding: 8px 14px; box-sizing: border-box; background: #120d0a; }
-    #row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
-    button { background: var(--bar); color: var(--fg); border: 1px solid #4a3a2c; border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer; }
-    #time { min-width: 90px; }
-    #help { color: var(--dim); margin-left: auto; }
-    #timeline { position: relative; height: 34px; background: var(--bar); cursor: pointer; border-radius: 3px; overflow: hidden; }
-    .shot { position: absolute; top: 0; bottom: 0; border-left: 1px solid #000; font-size: 10px; padding: 2px 3px; box-sizing: border-box; color: #d8c0a0; overflow: hidden; }
-    #playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
-    #beat { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
-    #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--dim); }
+    /* Layout: a dark screening room. The picture is the page, and a slim transport strip
+       underneath works like a tape deck: shot strip, play controls, bar/beat counter.
+       Single dark look on purpose (cinema), so there are no light-theme tokens. */
+    :root {
+      --bg: #0d0907;        /* scorched umber black */
+      --panel: #17110d;
+      --line: #3a2a1f;
+      --fg: #efdcc0;        /* pale sand */
+      --dim: #9a8166;
+      --accent: #e8913f;    /* sunrise orange */
+      --font-display: 'Michroma', 'Eurostile', 'Arial Narrow', sans-serif;
+      --font-ui: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+      color-scheme: dark;
+    }
+    html, body { height: 100%; }
+    html { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.4 var(--font-ui); overflow: hidden; display: flex; flex-direction: column; }
+    #stage { position: relative; flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; background: var(--bg); }
+    #c { display: block; width: 100%; height: 100%; object-fit: contain; max-width: 100%; }
+    body.render #stage { position: fixed; inset: 0; }
+    body.render #hud, body.render #controls, body.render #loading { display: none; }
+    #hud { position: absolute; top: 8px; left: 16px; right: 16px; pointer-events: none; text-shadow: 0 1px 2px var(--bg); white-space: pre-wrap; font-size: 11px; color: var(--fg); opacity: 0.85; }
+    #loading { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; color: var(--dim); text-align: center; padding-inline: 16px; }
+    #loading strong { font: 400 clamp(18px, 5vw, 30px)/1.2 var(--font-display); letter-spacing: 0.32em; color: var(--fg); }
+    #controls { flex: 0 0 auto; padding: 10px 16px; background: var(--panel); border-top: 1px solid var(--line); display: grid; gap: 10px; }
+    #timeline { position: relative; height: 30px; background: var(--line); cursor: pointer; border-radius: 3px; overflow: hidden; touch-action: none; }
+    .shot { position: absolute; top: 0; bottom: 0; border-left: 1px solid var(--bg); font-size: 9px; padding: 2px 2px; box-sizing: border-box; color: var(--fg); overflow: hidden; opacity: 0.9; }
+    #playhead { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    #row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    #transport { display: flex; gap: 6px; }
+    button, select { background: var(--line); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; min-height: 36px; min-width: 40px; padding: 4px 10px; font: 500 13px var(--font-ui); cursor: pointer; }
+    button:hover, select:hover { border-color: var(--dim); }
+    button:focus-visible, select:focus-visible, #timeline:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    #play { background: var(--accent); color: var(--bg); border-color: var(--accent); min-width: 76px; }
+    #counter { display: flex; gap: 12px; align-items: center; font-variant-numeric: tabular-nums; min-width: 0; }
+    #time { color: var(--fg); }
+    #barinfo { color: var(--dim); }
+    #beat { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+    #opts { display: flex; gap: 6px; margin-left: auto; }
+    #help { color: var(--dim); font-size: 11px; }
+    @media (max-width: 640px) {
+      #opts { margin-left: 0; }
+      #help { display: none; }
+      .shot { font-size: 0; }
+    }
   </style>
 </head>
 <body>
-  <div id="stage"><canvas id="c"></canvas></div>
-  <div id="hud"></div>
-  <div id="controls">
-    <div id="row">
-      <button id="play">▶ play</button>
-      <span id="time">0:00.00</span>
-      <span><span id="beat"></span> <span id="barinfo"></span></span>
-      <span id="help">space play · ←/→ bar · shift+←/→ shot · q quality · h hud · shot list in timeline</span>
-    </div>
-    <div id="timeline"><div id="playhead"></div></div>
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="hud"></div>
+    <div id="loading"><strong>TROMMELSAND</strong><span id="loadmsg">Loading song and shaders…</span></div>
   </div>
-  <div id="loading">loading…</div>
+  <div id="controls">
+    <div id="timeline" tabindex="0" aria-label="Timeline. Drag to seek."><div id="playhead"></div></div>
+    <div id="row">
+      <div id="transport">
+        <button id="prevShot" title="Previous shot (shift+←)" aria-label="Previous shot">⏮</button>
+        <button id="prevBar" title="Back one bar (←)" aria-label="Back one bar">◀</button>
+        <button id="play" title="Play / pause (space)">▶ Play</button>
+        <button id="nextBar" title="Forward one bar (→)" aria-label="Forward one bar">▶</button>
+        <button id="nextShot" title="Next shot (shift+→)" aria-label="Next shot">⏭</button>
+      </div>
+      <div id="counter"><span id="time">0:00.00</span><span><span id="beat"></span> <span id="barinfo"></span></span></div>
+      <div id="opts">
+        <select id="res" aria-label="Preview resolution" title="Preview resolution">
+          <option value="480x270">270p</option>
+          <option value="640x360">360p</option>
+          <option value="960x540">540p</option>
+          <option value="1920x1080">1080p</option>
+        </select>
+        <button id="hudBtn" title="Show / hide info (h)">Info</button>
+        <button id="fs" title="Fullscreen">⛶</button>
+      </div>
+      <span id="help">space play · ←/→ bar · shift+←/→ shot · h info</span>
+    </div>
+  </div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

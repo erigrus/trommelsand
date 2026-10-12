@@ -84,3 +84,13 @@ Verified in the container (SwiftShader): every shot renders without errors (stil
 
 **Next:** see [04-handoff](04-handoff.md). Set up on the home PC, check GPU speed, then refine the shots
 in order, starting with 03 (the shockwave) and 04 (the walker).
+
+## 2026-10-12 · Web preview for the phone
+
+- The preview player now works on phones: touch transport buttons, a resolution menu, lighter
+  defaults on touch devices (360p, half geometry), fullscreen, and no redraw while paused.
+- The song is fetched completely into memory before playback, so seeking works on hosts without
+  HTTP range requests. A local test without range support showed that seeks were otherwise lost.
+- `npm run build:web` creates a static build with relative paths (`video/dist/`). It is published as a
+  private claude.ai page: https://claude.ai/artifact/ASeqDKiXovyyoWkscGa99o
+- The title font falls back to the Google Fonts copy of Michroma if the bundled file is blocked.
