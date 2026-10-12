@@ -207,10 +207,38 @@ def main():
     freqs = librosa.fft_frequencies(sr=sr, n_fft=2048)
     low_onset = librosa.onset.onset_strength(S=librosa.amplitude_to_db(S[freqs < 150]), sr=sr, hop_length=HOP)
     down_t, down_info = downbeats_for(beat_t, low_onset[beats], regions)
+    # fill downbeats the tracker missed (e.g. the silent bar in the break) so bar
+    # numbers stay musical: insert evenly spaced bars into gaps of >= 1.5 bars
+    filled = [down_t[0]]
+    for t in down_t[1:]:
+        bar = 4 * 60 / next(r["bpm"] for r in regions if r["start"] <= filled[-1] + 0.5 < r["end"])
+        n_missing = int(round((t - filled[-1]) / bar)) - 1
+        for k in range(1, n_missing + 1):
+            filled.append(filled[-1] + (t - filled[-1]) / (n_missing + 2 - k))
+        filled.append(t)
+    down_t = np.array(filled)
 
     onsets = librosa.onset.onset_detect(onset_envelope=oe, sr=sr, hop_length=HOP)
     onset_t = librosa.frames_to_time(onsets, sr=sr, hop_length=HOP)
     onset_w = oe[onsets] / (oe.max() + 1e-9)
+
+    # per-instrument hits from band-limited onsets of the percussive part
+    Sp = np.abs(librosa.stft(y_perc, n_fft=2048, hop_length=HOP))
+
+    def band_hits(lo, hi, delta, wait_s):
+        env = librosa.onset.onset_strength(S=librosa.amplitude_to_db(Sp[(freqs >= lo) & (freqs < hi)]),
+                                           sr=sr, hop_length=HOP)
+        fr = librosa.onset.onset_detect(onset_envelope=env, sr=sr, hop_length=HOP, delta=delta,
+                                        wait=max(1, int(wait_s * FR)), normalize=True)
+        w = env[fr] / (np.percentile(env[fr], 95) + 1e-9) if len(fr) else []
+        return [[round(float(t), 3), round(float(min(x, 1.0)), 3)]
+                for t, x in zip(librosa.frames_to_time(fr, sr=sr, hop_length=HOP), w)]
+
+    hits = dict(
+        kick=band_hits(20, 150, 0.12, 0.12),     # sand shockwave rings
+        snare=band_hits(150, 2500, 0.15, 0.12),  # crest plumes (snare + riff accents)
+        hat=band_hits(6000, 11000, 0.10, 0.06),  # glints
+    )
 
     # ---- control curves --------------------------------------------------
     sub = band_energy(S, freqs, 20, 90)        # kick / bass weight
@@ -298,6 +326,10 @@ def main():
                 i += 1
         return res
 
+    # low guitar notes also trigger the <150 Hz detector: keep only kicks with real sub energy
+    sub_at = lambda t: curves["sub"][min(int(t * a.fps), len(curves["sub"]) - 1)]
+    hits["kick"] = [[t, round(w * min(1.0, sub_at(t) / 0.5), 3)] for t, w in hits["kick"] if sub_at(t) > 0.15]
+
     events = dict(
         stops=runs((curves["rms"] < 0.22) & (curves["rms_slow"] > 0.4), 3),
         bass_out=runs(scipy.ndimage.gaussian_filter1d(curves["sub"], 3) < 0.12, int(0.5 * a.fps)),
@@ -309,7 +341,7 @@ def main():
         tempo_regions=regions, downbeat_info=down_info, riff=rp,
         beats=[round(float(t), 3) for t in beat_t],
         downbeats=[round(float(t), 3) for t in down_t],
-        bars=bars, events=events,
+        bars=bars, events=events, hits=hits,
         onsets=[[round(float(t), 3), round(float(w), 3)] for t, w in zip(onset_t, onset_w)],
         sections=sections,
         curves={k: [round(float(v), 3) for v in c] for k, c in curves.items()},
@@ -375,6 +407,7 @@ def main():
     for k, v in rp.items():
         print(f"riff period (region @{k}s): {v['period_beats']} beats")
     print("events", events)
+    print("hits", {k: len(v) for k, v in hits.items()})
     print("\nsections:")
     for s in sections:
         print(f"  S{s['idx']:>2} {s['start']:7.2f}-{s['end']:7.2f} ({s['dur']:6.2f}s, {s['bars']:5.2f} bars @{s['bpm']})"

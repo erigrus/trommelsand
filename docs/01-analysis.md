@@ -15,7 +15,7 @@ Reproduce with `python tools/analyze.py audio/trommelsand.mp3` → `analysis/`.
 | Tempo ratio | 105 : 87.5 = **6 : 5** — a metric modulation, not a drift. The beat tracker holds ±15 ms around both values. |
 | Riff length | part A: 16 beats (4 bars) · part B: 8 beats (2 bars) |
 | Phrase length | part A: 16-bar blocks, almost exactly (bars 17, 33, 49, 65) |
-| Bars | 126 downbeats + 2 un-drummed break bars (73–74) |
+| Bars | 127. Bar 74, the silent bar of the break, has no hit, so its downbeat is interpolated |
 | Last hit | 5:14.6 — then 6.8 s of ring-out to 5:21.4 |
 
 The tempo change is the dramatic hinge of the song: two bars of break
@@ -38,13 +38,13 @@ against the zoom plots below. Bars are counted from the first guitar note (bar 1
 | A5 | 2:27.7 – 2:46.0 | 65–72 | 105 | Lower, darker riff (centroid drops to 1.7 kHz) — wind-down | ▆▅ |
 | Break | 2:46.0 – 2:50.5 | 73–74 | → | Drums and bass stop at ~2:47.5, guitar rings / feeds back | ▃ |
 | B1 | 2:50.5 – 2:58.7 | 75–77 | 87.5 | New riff, guitar + busy cymbals, **no bass** | ▄ |
-| B2 | 2:58.7 – 3:12.5 | 78–81 | 87.5 | Stop-and-go: bass/kick stabs at 3:00.7, 3:06.8, 3:10.8 with gaps in between | ▅▃▅ |
-| B3 | 3:12.5 – 3:20.7 | 82–84 | 87.5 | Full band rebuilds | ▆ |
-| B4 | 3:20.7 – 3:56.4 | 85–97 | 87.5 | Main groove of part B, overall energy peak; micro-stop at 3:34.5 | ▇▇ |
-| B5 | 3:56.4 – 4:15.6 | 98–104 | 87.5 | Heavy, dark, half-time riff; hard stabs/stops at 4:00.9, 4:01.6, 4:11.9 | ▆ |
-| B6 | 4:15.6 – 5:02.2 | 105–121 | 87.5 | Bass out 4:17.6 – 4:20.9 (guitar + cymbal swell), then the long climax; stop at 4:43.2 | ▃▇▇ |
-| B7 | 5:02.2 – 5:10.4 | 122–124 | 87.5 | Sustained heavy chords, low centroid | ▆ |
-| End | 5:10.4 – 5:14.6 | 125–126 | 87.5 | Final hits | ▇ |
+| B2 | 2:58.7 – 3:12.5 | 78–82 | 87.5 | Stop-and-go: bass/kick stabs at 3:00.7, 3:06.8, 3:10.8 with gaps in between | ▅▃▅ |
+| B3 | 3:12.5 – 3:20.7 | 83–85 | 87.5 | Full band rebuilds | ▆ |
+| B4 | 3:20.7 – 3:56.4 | 86–98 | 87.5 | Main groove of part B, overall energy peak; micro-stop at 3:34.5 | ▇▇ |
+| B5 | 3:56.4 – 4:15.6 | 99–105 | 87.5 | Heavy, dark, half-time riff; hard stabs/stops at 4:00.9, 4:01.6, 4:11.9 | ▆ |
+| B6 | 4:15.6 – 5:02.2 | 106–122 | 87.5 | Bass out 4:17.6 – 4:20.9 (guitar + cymbal swell), then the long climax; stop at 4:43.2 | ▃▇▇ |
+| B7 | 5:02.2 – 5:10.4 | 123–125 | 87.5 | Sustained heavy chords, low centroid | ▆ |
+| End | 5:10.4 – 5:14.6 | 126–127 | 87.5 | Final hits | ▇ |
 | Ring-out | 5:14.6 – 5:21.4 | — | — | Decay to silence | ▁ |
 
 ### Sync events (hard edges the picture must hit)
@@ -71,6 +71,9 @@ Self-similarity (beat-synchronous) — the two big blocks are part A and part B:
 - `tempo_regions`, `beats`, `downbeats`, `bars` (bar number → time)
 - `sections` (table above, plus per-section band energies)
 - `events.stops`, `events.bass_out`
+- `hits.kick`, `hits.snare`, `hits.hat`: `[time, weight 0..1]` from band-limited onsets of the
+  percussive part. Bands: < 150 Hz, 150–2500 Hz and 6–11 kHz. Kicks only count when there is real
+  sub-bass energy, because low guitar notes in the intro would otherwise trigger them. `snare` also picks up riff accents.
 - `onsets` (time, strength)
 - `curves.*` sampled at the video frame rate (25 fps), normalised 0..1:
   `rms`, `rms_slow`, `sub` (20–90 Hz, kick/bass), `lowmid` (90–400 Hz, fuzz body),

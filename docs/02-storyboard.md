@@ -109,46 +109,46 @@ On the downbeat of bar 75 the hanging grains drop all at once. Time-lapse: the s
 races down to late afternoon and the shadows stretch long. Fine ripples skitter across the sand
 in time with the double-time (175 BPM) hats.
 
-**11 · 2:58.7 – 3:12.5 · bars 78–81 · B2 "Approach"** (stop-and-go)
+**11 · 2:58.7 – 3:12.5 · bars 78–82 · B2 "Approach"** (stop-and-go)
 The ground heaves only while the bass plays (3:00.7, 3:06.8, 3:10.8): the mound
 surges toward the walker in jumps. In the gaps it freezes, and the walker freezes too. They are
 **walking without rhythm**. Cuts alternate between mound, feet and the walker's back.
 
-**12 · 3:12.5 – 3:20.7 · bars 82–84 · B3 build**
+**12 · 3:12.5 – 3:20.7 · bars 83–85 · B3 build**
 The mound speeds up and the dunes ahead buckle in waves. The camera pulls back fast and low
 in front of the advancing ridge.
 
-**13 · 3:20.7 · bar 85 downbeat · BREACH**
+**13 · 3:20.7 · bar 86 downbeat · BREACH**
 A giant worm bursts out of the dune against the sun with a fountain of sand.
 The ring mouth fills the frame.
 
-**14 · 3:20.7 – 3:56.4 · bars 85–97 · B4 "Riding the drum"** (energy peak)
+**14 · 3:20.7 – 3:56.4 · bars 86–98 · B4 "Riding the drum"** (energy peak)
 The walker rides on the worm's back across the erg. A fast chase shot cuts every
 2 bars between side tracking, front, and an aerial with the worm's wake behind.
 Spray density follows loudness, each snare flexes a worm segment, and kicks
 send rings out from the wake. The micro-stop at 3:34.5 is a 0.2 s freeze frame.
 
-**15 · 3:56.4 – 4:15.6 · bars 98–104 · B5 "Storm"** (heavy, half-time)
+**15 · 3:56.4 – 4:15.6 · bars 99–105 · B5 "Storm"** (heavy, half-time)
 A wall of storm swallows the frame: rust-brown, low visibility, sand streaming
 sideways. The hard stabs at 4:00.9, 4:01.6 and 4:11.9 become static-electric
 lightning flashes that light up the worm's outline in the storm for a moment.
 
-**16 · 4:15.6 – 4:20.9 · bars 105–106 · Eye of the storm** (bass out 4:17.6–4:20.9)
+**16 · 4:15.6 – 4:20.9 · bars 106–107 · Eye of the storm** (bass out 4:17.6–4:20.9)
 Sudden calm, with storm walls circling. The sky opens to night and **two moons**.
 The ground is completely still.
 
-**17 · 4:20.9 – 5:02.2 · bars 107–121 · B6 "Night drum"** (climax)
+**17 · 4:20.9 – 5:02.2 · bars 108–122 · B6 "Night drum"** (climax)
 Moonlit dunes in silver-blue. Glowing **blue spice motes** rise from the sand on
 every kick. The whole sea of dunes pulses like a drum skin as rings of light and sand
 spread out from the worm's path. The aerial flight returns at speed (mirroring shot 05) and
 banks every 2 bars. The stop at 4:43.2 is a 0.4 s blackout that comes back with the
 biggest ring of the video.
 
-**18 · 5:02.2 – 5:10.4 · bars 122–124 · B7 sustained chords**
+**18 · 5:02.2 – 5:10.4 · bars 123–125 · B7 sustained chords**
 Dawn bleeds into the night sky. In slow motion the worm dives back into the sand and
 throws up a huge curtain of sand.
 
-**19 · 5:10.4 – 5:14.6 · bars 125–126 · final hits**
+**19 · 5:10.4 – 5:14.6 · bars 126–127 · final hits**
 Top-down Chladni plate again (mirroring shot 06). Each final hit snaps the pattern
 sharper, ending in one clean ring-shaped figure, like the head of a drum.
 
@@ -161,7 +161,7 @@ small on the ridge. **FUZZAN · TROMMELSAND** fades in, then everything fades to
 ## Timeline at a glance
 
 ```
-bar   1      8        17              33              49              65    73 75  78   82 85             98     105 107                 122 125
+bar   1      8        17              33              49              65    73 75  78   83 86             99     106 108                 123 126
       |intro |  A1    |      A2       |      A3       |      A4       | A5  |br|B1 | B2 |B3| B4            | B5    |eye| B6               |B7 |end|
 time 0:00  0:17    0:38            1:15            1:51            2:28  2:46 2:50 2:59 3:12 3:21         3:56   4:16 4:21              5:02 5:10 5:15
 shot  02    03-04    05               06              07              08    09 10  11  12 13-14           15     16  17                  18  19   20

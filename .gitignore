@@ -1,8 +1,6 @@
-# source audio stays out of git
-audio/*
-!audio/.gitkeep
 # render output
-out/
-frames/
-*.mp4
+video/out/
+video/node_modules/
+video/dist/
+node_modules/
 __pycache__/
