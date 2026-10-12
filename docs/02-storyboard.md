@@ -40,7 +40,7 @@ footage, logos, characters or names.
 5:02 ▒ dawn bleeding into night ─▶ 5:14 ░ pale dawn, still
 ```
 
-Format: 1920×1080 at 25 fps, letterboxed to 2.39:1 (1920×804 active), with film grain and a light vignette.
+Format: 1920×1080 at 25 fps, full 16:9 frame (no letterbox), with film grain and a light vignette.
 
 ---
 
@@ -57,7 +57,7 @@ Black. Wind noise. A thin line of light appears on the horizon.
 Pre-dawn. Slow, low push across still dunes in cold indigo. Each guitar note
 lifts a thin veil of grains off the crest in front of the camera; the grains drift and settle.
 The cymbal swell from ~0:07 brightens the sky toward the horizon. The title
-**TROMMELSAND** forms out of drifting sand during bars 4–6, and on bar 7 the
+**FUZZAN — TROMMELSAND** forms out of drifting sand during bars 4–6, and on bar 7 the
 wind blows it away.
 *Sync: mid-band onsets → grain veils; `high` → sky brightness.*
 
@@ -154,7 +154,7 @@ sharper, ending in one clean ring-shaped figure, like the head of a drum.
 
 **20 · 5:14.6 – 5:21.4 · ring-out**
 Silence in the sand. The last grains settle. Pale dawn in a wide shot with the lone figure
-small on the ridge. **TROMMELSAND** fades in, then everything fades to black by 5:21.4.
+small on the ridge. **FUZZAN · TROMMELSAND** fades in, then everything fades to black by 5:21.4.
 
 ---
 
@@ -180,7 +180,7 @@ All rendering is procedural Python. Picture is locked to `analysis/analysis.json
 | `video/particles.py` | Grains, plumes, spice motes, frozen grains in the break |
 | `video/chladni.py` | Top-down Chladni-plate shots |
 | `video/figures.py` | Walker, stake and worm silhouettes |
-| `video/post.py` | Grade, heat shimmer, bloom, grain, vignette, letterbox, titles |
+| `video/post.py` | Grade, heat shimmer, bloom, grain, vignette, titles |
 | `video/render.py` | Parallel frame rendering piped to ffmpeg (H.264 + the original audio); `--preview` mode at 480p |
 
 Workflow: build the shots one by one, render a low-res preview per section for review,

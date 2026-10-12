@@ -1,6 +1,6 @@
 # Trommelsand
 
-Music video for **Trommelsand**, an instrumental stoner-rock track (5:21).
+Music video for **Trommelsand** by **FUZZAN**, an instrumental stoner-rock track (5:21).
 The concept: the desert is a drum skin, and every hit of the band shows up in the sand.
 The look is loosely inspired by *Dune*.
 
@@ -11,7 +11,7 @@ and (next) the procedural renderer.
 |---|---|---|
 | 0 | [Process log](docs/00-process.md) | ongoing |
 | 1 | [Music analysis](docs/01-analysis.md): tempo map, bars, sections, sync events | done |
-| 2 | [Concept & storyboard](docs/02-storyboard.md) | draft, waiting for feedback |
+| 2 | [Concept & storyboard](docs/02-storyboard.md) | approved |
 | 3 | Renderer (`video/`) | not started |
 
 ## Layout
