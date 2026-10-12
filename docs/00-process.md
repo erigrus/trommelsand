@@ -49,3 +49,38 @@ Options compared:
 | Iteration | render, then look | live in the browser | **live in the browser with the song, scrubbable** |
 | Offline render here | 0.2–1 s/frame (estimate) | slow (p5.brush draws thousands of strokes per frame) | ~1–3 s/frame for the final scene (estimate from the benchmark) |
 | Determinism | easy | per-frame brush randomness "boils" unless seeded per stroke | easy (time comes from the frame number, not the clock) |
+
+## 2026-10-12 · three.js renderer, first pass
+
+Decisions: **three.js**. The MP3 now lives in the repo (`audio/trommelsand.mp3`). Preview and final
+render happen on the PC at home (GPU). The cloud container is CPU-only.
+
+Analysis additions:
+- `hits.kick / snare / hat`: band-limited onsets from the percussive part. Kicks are gated by
+  sub-bass energy, because the low guitar notes in the intro produced 32 false kicks before gating.
+- The silent downbeat in the break (bar 74) is now interpolated, so bar numbers stay musical.
+  The bar numbers in the docs after the break were off by one in places; corrected.
+
+Renderer (`video/`), built end to end:
+- Vite app with a preview player (song, scrub timeline, shot and bar HUD) and a `?render` mode
+  driven by Playwright. `render.mjs` writes chunked, resumable mp4s and muxes them with the song.
+  `still.mjs` renders PNGs (used to check the look; see the contact sheet in 04-handoff).
+- World: an analytic dune heightfield shared by JS and GLSL. Camera-following, lattice-snapped
+  terrain grids with per-pixel normals, ripples, a sun self-shadow ray-march and glints. Kick-driven
+  ring shockwaves (16 at once), worm mounds, stateless particles (dust, spice, storm), sky with two
+  moons, a Chladni plate scene, and primitive walker, stake and worm.
+- Post: bloom, ACES, then a grade in display space with heat shimmer, title dissolve, flash/fade,
+  vignette and grain. Title "FUZZAN / TROMMELSAND" in Michroma (OFL).
+- All 20 shots are blocked in (`src/timeline.js`) with cuts on downbeats, steps on kicks, the stake
+  throbbing on beats, a mound that moves only while the bass plays, freeze frames on hard stops, and
+  a blackout + giant ring at 4:43.
+
+Pitfall: look colours were first fed to the shaders as raw sRGB, which washed everything out.
+They are now converted to linear (lift/gain stay in display space).
+
+Verified in the container (SwiftShader): every shot renders without errors (stills), and a 6 s clip
+(0:16–0:22, 640×360) rendered in 3 chunks and muxed with exactly 6.00 s of audio. CPU speed is about
+0.5 fps at 640×360, so the real renders belong on a GPU.
+
+**Next:** see [04-handoff](04-handoff.md). Set up on the home PC, check GPU speed, then refine the shots
+in order, starting with 03 (the shockwave) and 04 (the walker).

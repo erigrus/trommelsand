@@ -1,0 +1,21 @@
+{
+  "name": "trommelsand-video",
+  "private": true,
+  "version": "0.1.0",
+  "description": "FUZZAN - Trommelsand: procedural three.js music video",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "still": "node scripts/still.mjs",
+    "render": "node scripts/render.mjs"
+  },
+  "dependencies": {
+    "@fontsource/michroma": "5.2.5",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1",
+    "vite": "5.4.21"
+  }
+}

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FUZZAN — Trommelsand</title>
+  <style>
+    :root { --bg: #0b0806; --fg: #f0dcc0; --dim: #8a7660; --accent: #e89a4a; --bar: #2a1f17; }
+    html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; overflow: hidden; }
+    #stage { position: absolute; inset: 0 0 86px 0; display: flex; align-items: center; justify-content: center; }
+    canvas { max-width: 100%; max-height: 100%; aspect-ratio: 16 / 9; background: #000; }
+    body.render #stage { inset: 0; }
+    body.render #hud, body.render #controls { display: none; }
+    #hud { position: absolute; top: 10px; left: 12px; pointer-events: none; text-shadow: 0 1px 2px #000; white-space: pre; }
+    #controls { position: absolute; left: 0; right: 0; bottom: 0; height: 86px; padding: 8px 14px; box-sizing: border-box; background: #120d0a; }
+    #row { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+    button { background: var(--bar); color: var(--fg); border: 1px solid #4a3a2c; border-radius: 4px; padding: 4px 10px; font: inherit; cursor: pointer; }
+    #time { min-width: 90px; }
+    #help { color: var(--dim); margin-left: auto; }
+    #timeline { position: relative; height: 34px; background: var(--bar); cursor: pointer; border-radius: 3px; overflow: hidden; }
+    .shot { position: absolute; top: 0; bottom: 0; border-left: 1px solid #000; font-size: 10px; padding: 2px 3px; box-sizing: border-box; color: #d8c0a0; overflow: hidden; }
+    #playhead { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+    #beat { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+    #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--dim); }
+  </style>
+</head>
+<body>
+  <div id="stage"><canvas id="c"></canvas></div>
+  <div id="hud"></div>
+  <div id="controls">
+    <div id="row">
+      <button id="play">▶ play</button>
+      <span id="time">0:00.00</span>
+      <span><span id="beat"></span> <span id="barinfo"></span></span>
+      <span id="help">space play · ←/→ bar · shift+←/→ shot · q quality · h hud · shot list in timeline</span>
+    </div>
+    <div id="timeline"><div id="playhead"></div></div>
+  </div>
+  <div id="loading">loading…</div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

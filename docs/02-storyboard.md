@@ -168,20 +168,8 @@ shot  02    03-04    05               06              07              08    09 1
 light indigo gold    bright gold      hazy gold       white noon      dusty  hush late-afternoon orange   rust   night · two moons · blue  dawn
 ```
 
-## Technical approach (next step)
+## Technical approach
 
-All rendering is procedural Python. Picture is locked to `analysis/analysis.json`.
-
-| Module | Job |
-|---|---|
-| `video/timeline.py` | This storyboard as data: shots, times, camera paths, colour keys |
-| `video/terrain.py` | Dune heightfield (wind-aligned ridged noise and ripples), shockwave rings as damped radial waves, worm mound. "Voxel-space" column renderer (numba) for low flights and wide shots |
-| `video/sky.py` | Gradient sky, sun, haze, two moons, storm wall |
-| `video/particles.py` | Grains, plumes, spice motes, frozen grains in the break |
-| `video/chladni.py` | Top-down Chladni-plate shots |
-| `video/figures.py` | Walker, stake and worm silhouettes |
-| `video/post.py` | Grade, heat shimmer, bloom, grain, vignette, titles |
-| `video/render.py` | Parallel frame rendering piped to ffmpeg (H.264 + the original audio); `--preview` mode at 480p |
-
-Workflow: build the shots one by one, render a low-res preview per section for review,
-then do the final 1080p render.
+Built with three.js and custom GLSL. The shots in this document live as code in
+`video/src/timeline.js`, and the colour script lives in `video/src/look.js`.
+See [03-renderer](03-renderer.md) for how it works and [04-handoff](04-handoff.md) for the status of each shot.
