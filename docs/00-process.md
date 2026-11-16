@@ -248,3 +248,7 @@ that administrative API call. The owner enabled it, then the failed deploy job w
 `npm run build:web` passed locally and on GitHub Actions. A Chromium smoke check served the build
 under `/trommelsand/` and confirmed all 55 shots, the rigged model, the requested start time and no failed
 asset requests or JavaScript exceptions. The public address is https://erigrus.github.io/trommelsand/.
+
+The deployment completed successfully after Pages was enabled. The public URL returned HTTP 200;
+a Chromium check loaded the rigged walker and all 55 shots, played and paused the song, and reported
+no JavaScript errors or failed HTTP asset requests. An aborted blob preload request did not affect playback.
