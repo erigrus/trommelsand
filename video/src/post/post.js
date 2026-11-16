@@ -177,13 +177,12 @@ const GradeShader = {
         c = mix(c, vec3(0.78, 0.55, 0.36) * (0.5 + 0.6 * l), clamp(st * uStreaks, 0.0, 0.8));
       }
       c += uFlashColor * uFlash;
-      c *= uFade;
 
       vec2 vq = vUv - 0.5;
       c *= 1.0 - uVignette * dot(vq, vq) * 2.4;
       float gr = hash12(vUv * uRes + fract(uFrame * 0.618) * 1000.0) - 0.5;
       c += gr * uGrain * (0.6 + 0.8 * (1.0 - l));
-      gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
+      gl_FragColor = vec4(clamp(c, 0.0, 1.0) * uFade, 1.0);
     }
   `,
 };

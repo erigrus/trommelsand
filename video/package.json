@@ -11,7 +11,8 @@
     "render": "node scripts/render.mjs",
     "build:web": "node scripts/build-web.mjs",
     "cuts": "node scripts/cutlist.mjs",
-    "models": "node scripts/fetch-models.mjs"
+    "models": "node scripts/fetch-models.mjs",
+    "test": "node tests/review.mjs"
   },
   "dependencies": {
     "@fontsource/michroma": "5.2.5",

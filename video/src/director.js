@@ -186,7 +186,7 @@ export class Director {
     shot.frame(ctx);
 
     this.applyWorld(ctx, look);
-    this.applyPost(ctx, look, tFrame);
+    this.applyPost(ctx, look, t !== tMusic ? t : tFrame);
     this.post.render(this.scene, this.camera);
   }
 
@@ -264,6 +264,9 @@ export class Director {
       for (const mo of ctx.mounds) { const dx = (x - mo[0]) / mo[3], dz = (z - mo[1]) / mo[3]; gy += mo[2] * Math.exp(-(dx * dx + dz * dz)); }
       if (cam.position.y < gy + 0.15) { cam.position.y = gy + 0.15; cam.updateMatrixWorld(); }
     }
+
+    // The guard can lift the camera; fog and particles must use its final position.
+    U.uCamPos.value.copy(cam.position);
 
     // lights for the figures: sun, sky, and a rim when they are backlit
     const fwd = new THREE.Vector3();

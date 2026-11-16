@@ -212,3 +212,26 @@ Second round, after looking at stills of every cut:
 - 06f's exit path started 37 m inside the skeleton, so he never actually walked out of the jaws; it now starts at the
   head end. `sightline()` (rig.js) lifts a low camera just enough to keep a figure in view over humps.
 - 08a: the walker and thumper were cut off by the frame edge; reframed over his shoulder toward the mound.
+
+
+## 2026-11-16 — Video defect review
+
+Reviewed the v3 video on `claude/stoner-rock-music-video-i69ecp` (the branch in draft PR #1;
+`main` contains only a README). Rendered all 55 cut midpoints at 480×270 using Chromium/SwiftShader.
+A runtime probe measured a shockwave centre moving 8.64 m in 0.12 s, unequal frames during hard stops,
+and visible noise (up to 7/255) after the final fade.
+
+Fixed moving wave origins in flights, the approach, riding, circling and diving; rider placement now
+samples the raised body curve and follows its heading. Walking camera aims use their smoothed anchor.
+The hat-driven retreat persists through the following reaction and breach cuts. The complete worm now
+submerges before the final-hit cut, whose rings originate at the head end of the dive.
+
+The regression suite found an additional state leak: the animation mixer can skip writing unchanged
+samples, so applying the brace rotation repeatedly accumulated lean. Restoring the unbraced hips before
+sampling fixes repeated frames and seeking. Frozen post effects now use the held time; fades also cover
+grain. Shared camera uniforms use the final guarded position. Fixed interpolation of the first analysis
+curve interval.
+
+Validation and visual evidence are recorded in [05-review.md](05-review.md). A full real-time viewing
+with the song and a full 1080p GPU render remain outstanding; this session used sampled frames and
+browser regressions, not a complete encoded master.
