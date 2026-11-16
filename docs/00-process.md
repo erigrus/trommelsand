@@ -235,3 +235,16 @@ curve interval.
 Validation and visual evidence are recorded in [05-review.md](05-review.md). A full real-time viewing
 with the song and a full 1080p GPU render remain outstanding; this session used sampled frames and
 browser regressions, not a complete encoded master.
+
+
+## 2026-11-16 — Publish on GitHub Pages
+
+Added `.github/workflows/pages.yml` to build the static preview on pushes to `main` and deploy it with
+GitHub Pages. The workflow installs locked dependencies, downloads the walker, builds with relative
+URLs, uploads the Pages artifact, and deploys to the `github-pages` environment. Pages enablement
+required the owner to choose GitHub Actions in repository settings; the connection returned 403 for
+that administrative API call. The owner enabled it, then the failed deploy job was rerun.
+
+`npm run build:web` passed locally and on GitHub Actions. A Chromium smoke check served the build
+under `/trommelsand/` and confirmed all 55 shots, the rigged model, the requested start time and no failed
+asset requests or JavaScript exceptions. The public address is https://erigrus.github.io/trommelsand/.

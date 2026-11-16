@@ -61,11 +61,13 @@ add `--headed`. Delete `out/chunks/` after any visual change, because finished c
 
 ### Web preview (phone)
 
-A private web build of the preview player is published at
-https://claude.ai/artifact/ASeqDKiXovyyoWkscGa99o and renders live on the device; phones default to 360p.
-To update it, run `npm run build:web` in `video/`, then republish `dist/` (page = `dist/page.html`,
-plus `dist/assets/*` and `dist/models/Soldier.json`, the model as glTF JSON, because artifacts don't serve `.glb`). In Claude Code, ask Claude to republish the artifact at that URL.
-Other static hosts can serve `dist/index.html` as-is.
+The public video page is hosted at **https://erigrus.github.io/trommelsand/**.
+The workflow in `.github/workflows/pages.yml` rebuilds and publishes from `main`; it downloads the walker
+model with `npm run models` before `npm run build:web`, so the rigged figure is included.
+Repository **Settings → Pages → Source** must remain **GitHub Actions**.
+
+The static build uses relative URLs so scripts, fonts, audio and models load below `/trommelsand/`.
+To build locally, run `npm run build:web` in `video/`; the output is `video/dist/`.
 
 ## 2. Continue with Claude Code locally
 
