@@ -483,9 +483,13 @@ export class RiggedWalker {
     this.idle.time = (t * 0.6) % this.idle.getClip().duration;
     this.walk.setEffectiveWeight(walk);
     this.idle.setEffectiveWeight(1 - walk);
-    this.mixer.update(0);
-    // brace: lean forward into the wind from the hips
+    // PropertyMixer may skip writing an unchanged animation sample. Restore
+    // the unbraced pose first so repeated frames never accumulate the lean.
     const hips = this.bone('Hips');
+    if (this.unbracedHips) hips.quaternion.copy(this.unbracedHips);
+    this.mixer.update(0);
+    this.unbracedHips = hips.quaternion.clone();
+    // brace: lean forward into the wind from the hips
     hips.rotateX(brace * 0.35);
     this.root.updateMatrixWorld(true);
 

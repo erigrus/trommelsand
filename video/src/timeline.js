@@ -194,15 +194,15 @@ export function buildShots(m) {
   // ========================= A1: first steps (bars 10-16) ======================
   const walkCut = (c) => walkOn(c, RIDGE, WALK_FROM, 0, { extra: { carry: true } });
   cut('04a', 'Walker in silhouette on the crest, each step booms', B(10), (c) => {
-    const { W, A, fwd } = walkCut(c);
-    aim(c.camera, A.clone().add(V(-30, 3.2, 6)), W.clone().add(V(0, 1.5, 0)).addScaledVector(fwd, 2), 22);
+    const { A, fwd } = walkCut(c);
+    aim(c.camera, A.clone().add(V(-30, 3.2, 6)), A.clone().add(V(0, 1.5, 0)).addScaledVector(fwd, 2), 22);
     c.ringShape = [16, 1.3, 0.28, 1.0];
   });
   cut('04b', 'Low behind the walker: the footprint trail leads away from us', B(12), (c) => {
-    const { W, A, fwd } = walkCut(c);
+    const { A, fwd } = walkCut(c);
     const cp = A.clone().addScaledVector(fwd, -8).add(V(0.6, 0, 0));
     cp.y = duneHeight(cp.x, cp.z) + 0.6;
-    aim(c.camera, cp, W.clone().add(V(0, 1.0, 0)).addScaledVector(fwd, 4), 30);
+    aim(c.camera, cp, A.clone().add(V(0, 1.0, 0)).addScaledVector(fwd, 4), 30);
     c.ringShape = [6, 0.45, 0.07, 1.4];
     c.dust = { uBox: [16, 3, 16], uSize: 0.008, uOpacity: 0.8 };
     c.motes = { uOpacity: 0.5 };
@@ -215,8 +215,8 @@ export function buildShots(m) {
     c.ringLife = 4;
   });
   cut('04d', 'Front, low, the sun behind the hood', B(16), (c) => {
-    const { W, A, fwd } = walkCut(c);
-    aim(c.camera, A.clone().addScaledVector(fwd, 6).add(V(-24, 1.1, 0)), W.clone().add(V(0, 1.7, 0)), 17);
+    const { A, fwd } = walkCut(c);
+    aim(c.camera, A.clone().addScaledVector(fwd, 6).add(V(-24, 1.1, 0)), A.clone().add(V(0, 1.7, 0)), 17);
     c.ringShape = [16, 1.3, 0.28, 1.0];
     c.rays = { strength: 0.9 };
   });
@@ -226,7 +226,7 @@ export function buildShots(m) {
   cut('05a', 'Low flight into the sun, rings drop ahead', B(17), (c) => {
     const f = fly1(c.t);
     aim(c.camera, f.pos, f.pos.clone().addScaledVector(f.dir, 100).add(V(0, -13, 0)), 50, f.roll);
-    c.rings = (h) => [...ahead(f.pos, f.dir, h.i, 120, 520, 220, hash1), h.w * 1.3];
+    c.rings = (h) => { const hit = fly1(h.t); return [...ahead(hit.pos, hit.dir, h.i, 120, 520, 220, hash1), h.w * 1.3]; };
     c.ringShape = [170, 13, 2.4, 0.5];
     c.drift = { uGust: 0.6 + c.snareEnv * 1.5 };
     c.glint = Math.min(1, c.hatEnv * 1.4);
@@ -472,11 +472,17 @@ export function buildShots(m) {
     }
     return { curve, uOpacity: opacity, uSize: 3.0 };
   };
+  const escapeWalker = (t) => {
+    const w = basinWalker(t);
+    if (t < B(80)) return w;
+    const st = steps(Math.min(t, B(81)), B(80), 'hat', 0.5);
+    return { ...w, x: w.x - st * 0.45, step: st, walk: t < B(81) ? 1 : 0, heading: Math.PI / 2 };
+  };
   const thumperOn = (c) => {
     const s = stakeAt();
     c.stake = { x: s.x, z: s.z, sink: 0, lift: thumpLift(c.t) };
-    const w = basinWalker(c.t);
-    c.walker = { ...w, heading: -Math.PI / 2 + 0.3 };
+    const w = escapeWalker(c.t);
+    c.walker = { ...w, heading: c.t < B(80) ? -Math.PI / 2 + 0.3 : w.heading };
     c.feet = footprints(basinPath, stopT(), B(49));
     return { s, W: onGround(w.x, w.z) };
   };
@@ -509,7 +515,7 @@ export function buildShots(m) {
     }
     c.pour = { curve, uOpacity: 0.6, uSize: 2.6 };
     c.look.fog = 0.0007;
-    c.rings = (h) => [mx, mz, h.w];
+    c.rings = (h) => { const [x, z] = moundA5(h.t)[0]; return [x, z, h.w]; };
     c.ringShape = [40, 5, 0.9, 0.8];
   });
 
@@ -560,7 +566,7 @@ export function buildShots(m) {
     const a = approach(c.t);
     c.mounds = moundOf(a);
     c.pour = moundPlume(c.mounds[0], a.on ? 0.7 : 0.2);
-    c.rings = (h) => [a.x, a.z, h.w * 1.3];
+    c.rings = (h) => { const hit = approach(h.t); return [hit.x, hit.z, h.w * 1.3]; };
     c.ringShape = [55, 5, 1.1, 0.8];
     c.shake = a.on ? 0.1 + c.kickEnv * 0.25 : 0;
     c.punch = a.on ? 0.8 : 0;
@@ -578,8 +584,6 @@ export function buildShots(m) {
   cut('11c', 'Bass out: the walker moves off-rhythm', B(80), (c) => {
     const { W } = b2(c);
     // walking away without rhythm: steps on the hats, not the kicks
-    const st = steps(c.t, B(80), 'hat', 0.5);
-    c.walker = { ...c.walker, x: c.walker.x - st * 0.45, step: st, walk: 1, heading: Math.PI / 2 };
     const P = onGround(c.walker.x, c.walker.z);
     aim(c.camera, W.clone().add(V(-5, 0.4, 3.5)), P.clone().add(V(0, 0.5, 0)), 30);
   });
@@ -604,7 +608,7 @@ export function buildShots(m) {
 
   // ============================ BAR 86: BREACH ==================================
   cut('13', 'Breach: the worm bursts out of the ground, mouth toward us', B(86), (c) => {
-    const bw = basinWalker(c.t);
+    const bw = escapeWalker(c.t);
     const W = onGround(bw.x, bw.z);
     const { x: ax, z: az } = approach(B(86));
     const g = duneHeight(ax - 60, az);
@@ -639,17 +643,21 @@ export function buildShots(m) {
     const sH = sHeadAt(c.t);
     const pts = wormBody(wormPath, sH, 280, rise);
     c.worm = { points: pts, flex: Math.min(1, c.snareEnv), open: 0.35, pour: { uOpacity: 0.45 } };
-    const rp = wormPath(sH - 45);
-    const top = duneHeight(rp.x, rp.z) - 22 * 0.45 + 22 * 1.04;
-    c.walker = { x: rp.x, z: rp.z, y: top, heading: 0, step: 0, brace: 0.6 };
+    // Sample the raised body, including slope: the rider used to stand inside it.
+    const curve = new THREE.CatmullRomCurve3(pts);
+    const u = 1 - 45 / curve.getLength();
+    const centre = curve.getPointAt(u), tangent = curve.getTangentAt(u);
+    const up = V(0, 1, 0).addScaledVector(tangent, -tangent.y).normalize();
+    const R = centre.addScaledVector(up, 22 * 1.04);
+    c.walker = { x: R.x, z: R.z, y: R.y, heading: Math.atan2(-tangent.x, -tangent.z), step: 0, brace: 0.6 };
     c.wind = [0, 26];
-    c.rings = (h) => { const p = wormPath(sH - 30 - hash1(h.i) * 160); return [p.x + (hash1(h.i + 3) - 0.5) * 50, p.z, h.w * 1.6]; };
+    c.rings = (h) => { const p = wormPath(sHeadAt(h.t) - 30 - hash1(h.i) * 160); return [p.x + (hash1(h.i + 3) - 0.5) * 50, p.z, h.w * 1.6]; };
     c.ringShape = [55, 4.5, 1.0, 0.8];
     const head = wormPath(sH);
     c.mounds = [[head.x - 26, head.z - 10, 7, 18], [head.x + 26, head.z - 10, 7, 18]];
     c.drift = { uGust: 1.2 + c.snareEnv, uOpacity: 0.7, uWind: [0, 0, 14] };
     c.shake = 0.12 + c.kickEnv * 0.2;
-    return { R: V(rp.x, top, rp.z), H: onGround(head.x, head.z), sH };
+    return { R, H: onGround(head.x, head.z), sH };
   };
   cut('14a', 'Side tracking: the walker rides the worm into the sun', B(87), (c) => {
     const { R } = ride(c);
@@ -749,7 +757,7 @@ export function buildShots(m) {
     night(c);
     const f = fly108(c.t);
     aim(c.camera, f.pos, f.pos.clone().addScaledVector(f.dir, 100).add(V(0, -16, 0)), 48, f.roll);
-    c.rings = (h) => [...ahead(f.pos, f.dir, h.i, 120, 520, 240, hash1), h.w * 1.4];
+    c.rings = (h) => { const hit = fly108(h.t); return [...ahead(hit.pos, hit.dir, h.i, 120, 520, 240, hash1), h.w * 1.4]; };
     c.ringShape = [140, 9, 2.0, 0.45];
     c.shake = c.kickEnv * 0.15;
   }, () => { fly108 = flight({ t0: B(108), t1: B(112) + 1, x: 9000, z: -15000, heading: Math.PI, turns: [0, 0.4, -0.6, 0.4], period: 2 * 4 * 60 / 87.5, speed: 64, height: 26 }); });
@@ -762,7 +770,7 @@ export function buildShots(m) {
     const a = c.local * 0.35;
     const wx = NX + 140 * Math.cos(a), wz = NZ + 140 * Math.sin(a);
     c.mounds = [[wx, wz, 7, 26], [NX + 140 * Math.cos(a - 0.35), NZ + 140 * Math.sin(a - 0.35), 4, 22]];
-    c.rings = (h) => [wx, wz, h.w * 1.6];
+    c.rings = (h) => { const a = (h.t - c.shot.start) * 0.35; return [NX + 140 * Math.cos(a), NZ + 140 * Math.sin(a), h.w * 1.6]; };
     c.ringShape = [60, 5, 1.0, 0.55];
     aim(c.camera, W.clone().add(V(3 - c.u * 4, 0.7, 11)), W.clone().add(V(-1.5, 3.6, -10)), 36);
   }, () => { NZ = -16800; NX = crestX(9300, NZ); });
@@ -798,7 +806,7 @@ export function buildShots(m) {
     night(c);
     const f = fly120(c.t);
     aim(c.camera, f.pos, f.pos.clone().addScaledVector(f.dir, 100).add(V(0, -6, 0)), 50, f.roll);
-    c.rings = (h) => [...ahead(f.pos, f.dir, h.i, 100, 450, 220, hash1), h.w * 1.6];
+    c.rings = (h) => { const hit = fly120(h.t); return [...ahead(hit.pos, hit.dir, h.i, 100, 450, 220, hash1), h.w * 1.6]; };
     c.ringShape = [150, 10, 2.2, 0.45];
     c.shake = c.kickEnv * 0.2;
   }, () => { fly120 = flight({ t0: B(120), t1: B(123) + 1, x: 11000, z: -19000, heading: Math.PI * 1.08, turns: [0, -0.3, 0.3], period: 2 * 4 * 60 / 87.5, speed: (l) => 60 + l * 5, height: 22 }); });
@@ -811,19 +819,22 @@ export function buildShots(m) {
     const pts = [];
     for (let k = 0; k <= 14; k++) {
       const a = Math.PI * (0.08 + 0.84 * (k / 14)) + dive * 1.15;
-      pts.push(V(x0 + Math.cos(a) * 170, g - 50 + Math.sin(a) * 160, z0 + (k - 7) * 5));
+      pts.push(V(x0 + Math.cos(a) * 170, g - 50 + Math.sin(a) * 160 - dive * 190, z0 + (k - 7) * 5));
     }
     c.worm = { points: pts, open: 0.2, pour: { uOpacity: 0.9, uSize: 0.5 } };
     aim(c.camera, V(x0 - 40, clear(x0 - 40, z0 + 360, 8, 30), z0 + 360), V(x0 + 20, g + 60, z0), 42);
     c.drift = { uGust: 1.2, uOpacity: 0.6 };
-    c.rings = (h) => [x0 + 170 * Math.cos(Math.PI * 0.08 + dive * 1.15), z0, h.w * 2];
+    c.rings = (h) => {
+      const d = easeInOut(clamp((h.t - B(123)) / (B(126) - B(123))));
+      return [x0 + 170 * Math.cos(Math.PI * 0.92 + d * 1.15), z0 + 35, h.w * 2];
+    };
     c.ringShape = [70, 8, 2, 0.6];
     c.spice = { uOpacity: 0.5 * (1 - c.u) };
   });
 
   // ==================== final hits (bars 126-127) ================================
   cut('19', 'Final hits: from above, each hit throws a giant ring out of the dive site', B(126), (c) => {
-    const x0 = 12000 + 170 * Math.cos(Math.PI * 0.08 + 1.15), z0 = -22000;
+    const x0 = 12000 + 170 * Math.cos(Math.PI * 0.92 + 1.15), z0 = -22000 + 35;
     const g = duneHeight(x0, z0);
     const u = easeOutCubic(c.u);
     aim(c.camera, V(x0 + 30, g + lerp(170, 460, u), z0 + 30), V(x0, g, z0), 52);

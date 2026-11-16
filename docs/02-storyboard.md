@@ -259,6 +259,11 @@ v3:
   shots work again (04b, 09, 11a, 11c).
 - Cameras on a walking figure follow a smoothed, lagging anchor, so they no longer jump with each step.
 
+Review fixes (2026-11-16): 04a/04b/04d aim at the smoothed camera anchor; the hat-driven retreat in
+11c persists into 11d–13; the rider follows the raised body in 14–16; the complete worm submerges in 18,
+and 19's rings originate at its head end. Cut times and music markers are unchanged. Expanding waves
+stay anchored to their impact positions, including moving-camera and moving-worm shots.
+
 ![cuts 02a-10](img/v3-contact-1.jpg)
 ![cuts 11a-20](img/v3-contact-2.jpg)
 

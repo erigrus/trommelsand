@@ -30,7 +30,7 @@ export class Music {
     const c = this.curves[name];
     const x = t * this.fps;
     const i = Math.floor(x);
-    if (i <= 0) return c[0];
+    if (i < 0) return c[0];
     if (i >= c.length - 1) return c[c.length - 1];
     const f = x - i;
     return c[i] * (1 - f) + c[i + 1] * f;
