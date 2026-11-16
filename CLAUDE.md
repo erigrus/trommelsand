@@ -1,0 +1,89 @@
+# CLAUDE.md — working on the Trommelsand video
+
+Music video for **"Trommelsand" by FUZZAN**, an instrumental stoner-rock track
+(5:21, 105 → 87.5 BPM). The concept is "the desert is a drum skin": every hit of
+the band shows up in the sand. The look is loosely inspired by *Dune*. The picture is
+generated procedurally with three.js and locked to a music analysis.
+
+**Read first:** `docs/04-handoff.md` (current status + to-do), then
+`docs/02-storyboard.md` (what each shot should be) and `docs/03-renderer.md` (how the code works).
+
+## Repo map
+
+```
+audio/trommelsand.mp3        the song (source of truth for timing)
+tools/analyze.py             music analysis -> analysis/analysis.json (+ plots)
+analysis/analysis.json       tempo map, bars, beats, hits (kick/snare/hat), events, curves @25fps
+docs/                        process log, analysis notes, storyboard, renderer guide, handoff
+video/                       three.js app (Vite) + render scripts
+  src/timeline.js            THE STORYBOARD AS CODE: 55 cuts, each pinned to a bar
+  src/rig.js                 camera/staging helpers (aim, crest paths, flights, basins)
+  src/look.js                colour script keyframes
+  src/director.js            turns time t into a frame (world, uniforms, post)
+  src/world/*                terrain (dune heightfield), sky, particles, figures (worm, thumper,
+                             fallback walker), walker.js (rigged walker + skinned cloth), bones.js (worm skeleton)
+  public/models/             downloaded models (git-ignored; `npm run models`)
+  src/post/*                 grade/bloom/grain/titles
+  scripts/still.mjs          render PNG stills (use these to look at your work)
+  scripts/render.mjs         chunked, resumable mp4 render, muxed with the song
+```
+
+## Commands (run in `video/`)
+
+```bash
+npm install && npx playwright install chromium   # once
+npm run models                                   # once: download the rigged walker (public/models/, not committed)
+npm run dev                                      # preview with audio: http://localhost:5173 (?t=200 to start at 200 s)
+npm run still -- --shots                         # one PNG per shot -> video/out/stills/
+npm run still -- --t 17.4,56.3,200.7             # PNGs at specific times (--mb 6 for motion blur)
+npm run cuts                                     # cut list as Markdown (paste into docs/02-storyboard.md)
+npm run render -- --from 17 --to 40 --w 960 --h 540   # draft clip with audio
+npm run render                                   # final 1920x1080, ~8036 frames, motion blur --mb 6
+npm run build:web                                # static web build -> video/dist (mobile preview page)
+```
+
+Analysis (repo root, Python 3.10+): `pip install -r requirements.txt && python tools/analyze.py audio/trommelsand.mp3`.
+Only needed if the analysis code changes. Never hand-edit `analysis.json`.
+
+## Hard rules
+
+1. **Every frame is a pure function of music time.** `shot.frame(ctx)` may read only
+   `ctx.t`, `ctx.sim`, `ctx.music`, and data precomputed deterministically in `init()`.
+   Never use `Math.random()`, `Date`, `performance.now()`, or state carried from the previous frame.
+   Use `hash1()` / `rng(seed)` from `src/core/util.js`. This lets the preview seek anywhere and
+   lets `render.mjs` render any chunk on its own.
+2. **`duneHeight` exists twice** (`src/world/terrain-fn.js`: JS and GLSL). Change both, identically.
+3. **Sync comes from `analysis.json`.** Use bars (`music.barTime(n)`, `B(n)` in timeline.js),
+   hits (`music.recentHits('kick', t, window)`, `music.envelope(...)`), events (`stops`,
+   `bass_out`) and curves (`music.curve('rms', t)`). Don't hard-code times that the analysis provides.
+   Bar numbers match `docs/01-analysis.md`.
+4. Use `ctx.sim` for anything that should freeze in the break (2:47–2:50.5): grains, rings, wind.
+   Use `ctx.t` for camera moves. Hard stops in `events.stops` are freeze frames (director.js).
+5. **Look at your work.** After a visual change, render stills (`npm run still -- --t ...`) and
+   view the PNGs before you claim it works. With no GPU, add `--swiftshader` (slow but correct).
+6. No film footage, logos, character names or likenesses. Generic desert, worm and moons only.
+   Title card: "FUZZAN" / "TROMMELSAND".
+7. Keep the docs current: add a dated entry to `docs/00-process.md` per session, update the status
+   table in `docs/04-handoff.md`, and update `docs/02-storyboard.md` if a shot changes.
+8. Delete `video/out/chunks/` before re-rendering after a visual change. Existing chunks are reused.
+9. Check sync with **frame strips**, not single stills: render 8 frames 0.12 s apart around a
+   section edge (`npm run still -- --t a,b,c,...`) and check that the picture changes on the downbeat.
+10. Known traps: a lathe axis gives zero normals (NaN → black frame, use `sanitizeNormals`); stacked
+    rings from earlier kicks can raise a wall of sand at a cut (gate rings by `h.t`); camera height
+    must come from the ground *at the camera*, not at the subject (the director guards this, but frame it right);
+    a low camera in a trough can lose the figure behind a hump (use `sightline()` from rig.js).
+    Editing `src/` while a still/render script runs makes Vite reload the page and the script dies
+    ("Execution context was destroyed"): wait, or rerun.
+11. **Walking shots:** move the walker with `steps()` / `walker()` (smooth, one step per kick) and aim
+    cameras at `follow()` (a lagging, smoothed anchor), never at the raw walker position. Otherwise the
+    camera copies every step. `walkOn()` in timeline.js wires up all three plus footprints and rings.
+12. **Models:** the rigged walker (`video/public/models/Soldier.glb`) is a Mixamo character from the three.js
+    examples. It is downloaded by `npm run models` and **never committed**. Without it, the director falls
+    back to the procedural `Walker` in `figures.js`, so code must keep working in both cases.
+
+## Conventions
+
+- Plain ES modules, no TypeScript, no framework. 2-space indent. Match the surrounding comment style.
+- Shaders live as template strings next to the class that uses them. Shared uniforms are in `src/world/shared.js` (`U`).
+- Colours in `look.js` are sRGB hex. The director converts them to linear (except lift/gain).
+- Commit messages: imperative summary line, then the why. Output (`video/out/`) is git-ignored.
