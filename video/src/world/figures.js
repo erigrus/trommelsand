@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { duneHeight } from './terrain-fn.js';
+import { smoothstep } from '../core/util.js';
 
 // Figures are mostly seen against a low sun, so silhouette, motion and a
 // clean rim light matter most. Cloth flutters in the vertex shader, and
@@ -409,7 +410,8 @@ export class Worm {
       for (let i = 0; i < 40; i++) {
         const u = 0.12 + 0.75 * tr();
         const phi = (tr() - 0.5) * 2 * 0.8 * (1 - 0.85 * u * u);
-        const rho = radius * (1 - 0.55 * u) * 0.985;
+        const width = 1 - 0.85 * u * u;
+        const rho = radius * (1 - 0.55 * u) * (1 + 0.04 * Math.sin(u * 19 + phi / width * 3)) - 0.65;
         const pos = new THREE.Vector3(-radius + rho * Math.cos(phi), rho * Math.sin(phi), u * L);
         const dir = new THREE.Vector3(-Math.cos(phi), -Math.sin(phi), -0.5).normalize();
         const sc = 0.6 + tr() * 0.8;
@@ -426,14 +428,13 @@ export class Worm {
   }
 
   /** points: Vector3[] tail -> head; flex: 0..1 ring pulse; open: 0..1 mouth petals. */
-  build(points, { flex = 0, open = 1 } = {}) {
+  build(points, { flex = 0, open = 1, plates = 32 } = {}) {
     const curve = new THREE.CatmullRomCurve3(points);
     const geo = new THREE.TubeGeometry(curve, this.segments, this.radius, this.radial, false);
     const pos = geo.attributes.position, uvs = geo.attributes.uv;
-    const len = curve.getLength();
-    const rings = Math.round(len / 9.5);
+    // Keep plate layout attached to the body as the spline stretches.
     // ring coordinate: plates of uneven length (monotonic warp of u * rings)
-    const ringAt = (u) => { const x = u * rings; return x + 0.16 * Math.sin(x * 0.53 + 1.0) + 0.09 * Math.sin(x * 1.31 + 2.0); };
+    const ringAt = (u) => { const x = u * plates; return x + 0.16 * Math.sin(x * 0.53 + 1.0) + 0.09 * Math.sin(x * 1.31 + 2.0); };
     const end = ringAt(1);
     const h = (n) => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
     const colors = new Float32Array(pos.count * 3);
@@ -443,7 +444,7 @@ export class Worm {
     for (let i = 0; i <= this.segments; i++) {
       const u = i / this.segments;
       curve.getPointAt(u, centre);
-      const taper = Math.min(1, 0.25 + u * 3.5) * (u > 0.97 ? 1.04 : 1);
+      const taper = Math.min(1, 0.25 + u * 3.5) * (1 + 0.04 * smoothstep(0.94, 1, u));
       const rc = ringAt(u), ring = Math.floor(rc), seg = rc - ring;
       const lipH = 0.045 + 0.05 * h(ring), deep = 0.03 + 0.035 * h(ring + 50), ph = h(ring + 100) * 6.28;
       const tint = 0.85 + 0.25 * h(ring + 200);
@@ -467,12 +468,20 @@ export class Worm {
         const patch = 0.5 + 0.5 * Math.sin(ang * 2 + rc * 0.7 + ph) * Math.sin(u * 31 + ang);
         c.copy(plate).lerp(belly, Math.max(0, -up) * 0.7).lerp(groove, g * 0.8 * back)
           .lerp(dust, Math.max(0, up) * (0.35 + 0.4 * patch) * (1 - g));
-        c.multiplyScalar(tint * (0.9 + 0.2 * ((j * 7 + i * 13) % 11) / 11));
-        colors.set([c.r, c.g, c.b], k * 3);
+        c.multiplyScalar(tint * (0.98 + 0.04 * Math.sin(ang * 9 + u * 41)));
+        c.toArray(colors, k * 3);
       }
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
+    const normals = geo.attributes.normal;
+    const a = new THREE.Vector3(), b = new THREE.Vector3();
+    for (let i = 0; i <= this.segments; i++) {
+      const first = i * (this.radial + 1), last = first + this.radial;
+      a.fromBufferAttribute(normals, first).add(b.fromBufferAttribute(normals, last)).normalize();
+      normals.setXYZ(first, a.x, a.y, a.z);
+      normals.setXYZ(last, a.x, a.y, a.z);
+    }
     // one texture repeat per armour plate, so the painted lip/seam sits on the geometric one
     if (this.skin.map) { this.skin.map.repeat.set(end, 6); this.skin.bump.repeat.set(end, 6); }
     this.mesh.geometry.dispose();

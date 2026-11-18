@@ -88,7 +88,7 @@ browser preview.
 | 04 A1 walker | 04a–d | 0:22–0:38 | ● | Rigged walker, footprints, step rings; camera position and aim both use the smoothed anchor (reviewed 2026-11-16) |
 | 05 A2 | 05a–d | 0:38–1:14.6 | ◑ | 05c (slip face) and 05d (skeleton from above, kicks like rain) are strong. 05a flight is plain |
 | 06 A3 skeleton | 06a–g | 1:14.6–1:51.2 | ◑ | Ribs, drifts, jaw ring work. 06b's sand pour reads as dirt on the ribs in a still; check in motion. 06g (dive) is plain |
-| 07 A4 noon | 07a–d | 1:51.2–2:27.7 | ● | Cracked basin, rings on the hardpan, thumper slam on bar 57 |
+| 07 A4 noon | 07a–g | 1:51.2–2:27.7 | ● | Cracked basin, rings on the hardpan, thumper slam on bar 57 |
 | 08 A5 mound | 08a–b | 2:27.7–2:46 | ◑ | The mound reads. The dust plume is faint |
 | 09 Break | 09 | 2:46–2:50.5 | ◑ | Hanging grains plus the push-in. Check in motion |
 | 10 B1 drop | 10 | 2:50.5–2:58.7 | ◑ | Time-lapse orbit. Check the ripple skitter on hats in motion |

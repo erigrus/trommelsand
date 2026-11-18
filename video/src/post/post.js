@@ -170,11 +170,15 @@ const GradeShader = {
       // storm: layers of sand streaking sideways, fast near the lens
       if (uStreaks > 0.0) {
         float t = uFrame / 25.0;
-        float s1 = vnoise(vec2(vUv.x * 3.0 - t * 9.0, vUv.y * 140.0));
-        float s2 = vnoise(vec2(vUv.x * 6.0 - t * 15.0 + 7.0, vUv.y * 260.0 + 3.0));
-        float s3 = vnoise(vec2(vUv.x * 1.5 - t * 5.0 + 2.0, vUv.y * 40.0 + 9.0));
-        float st = smoothstep(0.55, 0.95, s1) * 0.5 + smoothstep(0.6, 0.98, s2) * 0.35 + smoothstep(0.4, 0.9, s3) * 0.25;
-        c = mix(c, vec3(0.78, 0.55, 0.36) * (0.5 + 0.6 * l), clamp(st * uStreaks, 0.0, 0.8));
+        // Short gusts at two depths. Tilt and gently warp the flow across the lens.
+        vec2 flow = vec2(vUv.x, vUv.y + 0.13 * vUv.x);
+        flow.y += 0.009 * sin(vUv.x * 11.0 + t * 1.3);
+        vec2 farP = flow * vec2(19.0, 73.0) - vec2(t * 18.0, t * 1.5);
+        vec2 nearP = flow * vec2(10.0, 37.0) - vec2(t * 25.0, t * 2.0);
+        float gust = smoothstep(0.30, 0.72, vnoise(flow * vec2(4.0, 6.0) - vec2(t * 2.0, 0.0)));
+        float st = (0.27 * smoothstep(0.58, 0.91, vnoise(farP))
+                  + 0.30 * smoothstep(0.64, 0.93, vnoise(nearP))) * gust;
+        c = mix(c, vec3(0.78, 0.55, 0.36) * (0.5 + 0.6 * l), clamp(st * uStreaks, 0.0, 0.35));
       }
       c += uFlashColor * uFlash;
 

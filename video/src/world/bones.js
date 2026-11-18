@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { duneHeight } from './terrain-fn.js';
 import { RIM } from './figures.js';
-import { rng } from '../core/util.js';
+import { rng, smoothstep } from '../core/util.js';
 
 // The skeleton of a long-dead giant worm, half buried in the dunes (part A3).
 // Vertebrae along a spine curve, pairs of ribs arching over it, a jaw ring of
@@ -86,9 +86,20 @@ function boneAlong(points, { thick, flatDir = null, flat = 1, taper = 0.55, snap
     o.set(p.getX(q), p.getY(q), p.getZ(q)).sub(cp);
     if (flatDir) o.addScaledVector(flatDir, o.dot(flatDir) * (flat - 1));
     // thick root, knobbly shaft, tapered or snapped tip
-    const k = (1.25 - (snapped ? 0.35 : taper + 0.1) * f) * (1 + 0.08 * Math.sin(f * 23 + q % per));
+    const angle = (q % per) / radial * Math.PI * 2;
+    const tip = snapped ? 1 : Math.max(0.12, Math.sqrt(1 - f ** 12));
+    const k = tip * (1.25 - (snapped ? 0.35 : taper + 0.1) * f)
+      * (1 + 0.08 * Math.sin(f * 23 + angle * 3));
+    if (snapped) cp.addScaledVector(rc.getTangentAt(f), thick * f ** 8 * 0.22 * Math.sin(angle * 3 + 0.6));
     p.setXYZ(q, cp.x + o.x * k, cp.y + o.y * k, cp.z + o.z * k);
   }
+  // Close both ends using the end rings, with outward-facing winding.
+  const indices = Array.from(tube.index.array);
+  const end = seg * per;
+  for (let j = 1; j < radial - 1; j++) {
+    indices.push(0, j, j + 1, end, end + j + 1, end + j);
+  }
+  tube.setIndex(indices);
   // square-ish texels: repeat the texture along the bone
   const rep = Math.max(1, Math.round(rc.getLength() / (thick * 5)));
   for (let q = 0; q < uv.count; q++) uv.setX(q, uv.getX(q) * rep);
@@ -242,11 +253,14 @@ export class WormSkeleton {
 
   /** The n sand drifts nearest to (x, z) as mounds [x, z, height, radius], height scaled by k. */
   driftsNear(x, z, n, k = 1) {
-    return this.drifts
+    const ranked = this.drifts
       .map((d) => [Math.hypot(d[0] - x, d[1] - z), d])
-      .sort((a, b) => a[0] - b[0])
-      .slice(0, n)
-      .map(([, d]) => [d[0], d[1], d[2] * k, d[3]]);
+      .sort((a, b) => a[0] - b[0]);
+    // Fade near the selection boundary so exchanging two drifts can't pop.
+    const cutoff = ranked[n]?.[0] ?? Infinity;
+    return ranked.slice(0, n).map(([distance, d]) => [
+      d[0], d[1], d[2] * k * smoothstep(0, 18, cutoff - distance), d[3],
+    ]);
   }
 
   set visible(v) { this.group.visible = v && this.built; }

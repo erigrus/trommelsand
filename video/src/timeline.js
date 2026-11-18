@@ -210,7 +210,8 @@ export function buildShots(m) {
   });
   cut('04c', 'Drone descends over the crest, a trail of rings', B(14), (c) => {
     const { A, fwd } = walkCut(c);
-    aim(c.camera, A.clone().add(V(0.01, lerp(34, 10, easeInOut(c.u)), 0)).addScaledVector(fwd, -4), A.clone().addScaledVector(fwd, 6), 42);
+    const pos = A.clone().add(V(-13, lerp(22, 9, easeInOut(c.u)), 0)).addScaledVector(fwd, -10);
+    aim(c.camera, pos, A.clone().addScaledVector(fwd, 2), 40, -0.12);
     c.ringShape = [11, 1.0, 0.2, 0.9];
     c.ringLife = 4;
   });
@@ -279,10 +280,10 @@ export function buildShots(m) {
     const y = g + lerp(520, 110, dive);
     aim(c.camera, V(mid.x - 40 * dive, y, mid.z + 60 * dive), V(mid.x + Math.cos(a) * 25, g, mid.z + Math.sin(a) * 25), 50);
     const tail = spinePath(0);
-    c.walker = { x: tail.x - 60, z: tail.z + 40, heading: tail.heading, step: steps(c.t, B(29)), walk: 1, carry: true };
+    c.walker = { x: tail.x - 60, z: tail.z + 40, heading: tail.heading, step: 0, walk: 0, carry: true };
     c.rings = (h) => [mid.x + (hash1(h.i * 3) - 0.5) * 760, mid.z + (hash1(h.i * 3 + 1) - 0.5) * 460, h.w * (m.a.bars[barOf(h.t) - 1]?.kicks > 5 ? 1.8 : 1.2)];
-    c.ringShape = [80, 7, 2.2, 0.42];
-    c.ringLife = 5;
+    c.ringShape = [80, 13, 0.65, 0.65];
+    c.ringLife = 2.8;
     c.drift = { uOpacity: 0.3 };
   }, (ctx) => {
     // find a long trough: start east of the walker's crest, follow the lowest line south
@@ -321,10 +322,13 @@ export function buildShots(m) {
     skeletonOn(c);
     const p = spinePath(95), q = spinePath(115);
     const P = onGround(p.x, p.z);
-    aim(c.camera, P.clone().add(V(-16, 3, 4)), onGround(q.x, q.z).add(V(0, 8, 0)), 34);
+    const pos = P.clone().add(V(-19, 0, 6));
+    pos.y = clear(pos.x, pos.z, 4, 5);
+    const target = onGround(q.x, q.z, 8);
+    aim(c.camera, sightline(pos, target, 1), target, 38);
     const curve = [];
     for (let i = 0; i < 16; i++) { const r = spinePath(80 + i * 3); curve.push([r.x, duneHeight(r.x, r.z) + 9, r.z, 2.5]); }
-    c.pour = { curve, uOpacity: 0.25 + 0.75 * beatEnv(c.t, 0.4), uSize: 0.3 };
+    c.pour = { curve, uOpacity: 0.18 + 0.58 * beatEnv(c.t, 0.4), uSize: 0.22 };
     c.ringShape = [10, 1, 0.15, 1];
   });
   cut('06c', 'Beneath the jaw: the walker under a ring of teeth', B(37), (c) => {
@@ -363,7 +367,8 @@ export function buildShots(m) {
     for (let i = 0; i < 16; i++) { const r = spinePath(20 + i * 18); curve.push([r.x, duneHeight(r.x, r.z) + 14, r.z, 12]); }
     c.pour = { curve, uOpacity: 0.6 * (0.4 + since(c.t, m.barTime(40), 3)), uSize: 0.9 };
     c.rings = (h) => [mid.x + (hash1(h.i) - 0.5) * 300, mid.z + (hash1(h.i + 7) - 0.5) * 300, h.w * 1.4];
-    c.ringShape = [90, 8, 2.0, 0.5];
+    c.ringShape = [90, 14, 0.72, 0.7];
+    c.ringLife = 2.8;
     c.glint = Math.min(1, c.hatEnv * 1.5);
     c.shake = 0.25 * since(c.t, m.barTime(40), 1.2) + c.kickEnv * 0.12;
   });
@@ -441,18 +446,28 @@ export function buildShots(m) {
     aim(c.camera, S.clone().add(V(Math.cos(a) * 15, 3.2, Math.sin(a) * 15)), S.clone().add(V(0, 1.4, 0)), 34);
     c.shake = 0.15 * since(c.t, m.barTime(STAKE_BAR), 1.0);
   });
-  cut('07d', 'One bar each: rings from above, the hammer, the basin, the grains', B(61), (c) => {
+  cut('07d', 'Thumper rings from above', B(61), (c) => {
     const { s } = stakeCut(c);
     const S = onGround(s.x, s.z);
-    const k = barOf(c.t) - 61;
-    if (k === 0) aim(c.camera, S.clone().add(V(0.01, 70, 0)), S, 42);
-    else if (k === 1) aim(c.camera, S.clone().add(V(-1.6, 1.1, 1.0)), S.clone().add(V(0, 1.7, 0)), 34);
-    else if (k === 2) aim(c.camera, S.clone().add(V(-130, 1.6, 40)), S.clone().add(V(0, 1.5, 0)), 20);
-    else {
-      aim(c.camera, S.clone().add(V(-1.5, 0.25, 0.6)), S.clone().add(V(0.8, 0.05, -0.5)), 38);
-      c.dust = { uBox: [6, 1.5, 6], uSize: 0.004, uGust: Math.min(1.5, beatEnv(c.t, 0.2) * 2), uOpacity: 0.9 };
-      c.focus = 1.2;
-    }
+    aim(c.camera, S.clone().add(V(-8, 66, 12)), S, 42);
+  });
+  cut('07e', 'The thumper hammer strikes', B(62), (c) => {
+    const { s } = stakeCut(c);
+    const S = onGround(s.x, s.z);
+    aim(c.camera, S.clone().add(V(-3.2, 1.9, 1.6)), S.clone().add(V(0, 2.1, 0)), 42);
+  });
+  cut('07f', 'The impact travels across the basin', B(63), (c) => {
+    const { s } = stakeCut(c);
+    const S = onGround(s.x, s.z);
+    aim(c.camera, S.clone().add(V(-21, 4, 9)), S.clone().add(V(3, 0.7, 0)), 36);
+  });
+  cut('07g', 'Grains lift from the cracked sand', B(64), (c) => {
+    const { s } = stakeCut(c);
+    const pos = onGround(s.x - 3.8, s.z + 1.6, 0.42);
+    const target = onGround(s.x - 1.8, s.z - 0.9, 0.16);
+    aim(c.camera, pos, target, 38);
+    c.dust = { uBox: [8, 1.4, 8], uSize: 0.008, uGust: Math.min(1.5, beatEnv(c.t, 0.2) * 2), uOpacity: 0.9 };
+    c.focus = 1.8;
   });
 
   // ===================== A5: something listens (bars 65-72) ====================
@@ -613,18 +628,18 @@ export function buildShots(m) {
     const { x: ax, z: az } = approach(B(86));
     const g = duneHeight(ax - 60, az);
     const rise = easeOutCubic(clamp((c.t - m.barTime(86)) / 1.4));
-    const H = V(ax - 50 - 30 * rise, g + 8 + 40 * rise, az - 4);
-    const T = V(ax + 170, g - 70, az + 10), C = V(ax + 30, g + 8 + 58 * rise, az + 4);
+    const H = V(ax - 50 - 30 * rise, g - 28 + 76 * rise, az - 4);
+    const T = V(ax + 170, g - 70, az + 10), C = V(ax + 30, g - 28 + 94 * rise, az + 4);
     const pts = [];
     for (let k = 0; k <= 14; k++) {
       const u = k / 14;
       pts.push(V((1 - u) * (1 - u) * T.x + 2 * (1 - u) * u * C.x + u * u * H.x, (1 - u) * (1 - u) * T.y + 2 * (1 - u) * u * C.y + u * u * H.y, (1 - u) * (1 - u) * T.z + 2 * (1 - u) * u * C.z + u * u * H.z));
     }
-    c.worm = { points: pts, open: easeOutCubic(clamp((c.t - m.barTime(86)) / 1.0)), flex: Math.min(1, c.kickEnv), pour: { uOpacity: 0.8, uSize: 0.5 } };
+    c.worm = { points: pts, plates: 30, open: easeOutCubic(clamp((c.t - m.barTime(86)) / 1.0)), flex: Math.min(1, c.kickEnv), pour: { uOpacity: 0.8, uSize: 0.5 } };
     const s = stakeAt();
     c.stake = { x: s.x, z: s.z, sink: 0, lift: 1 };
     c.walker = { ...bw, heading: -Math.PI / 2, brace: 1 };
-    aim(c.camera, W.clone().add(V(-9, 0.9, 5)), H.clone().add(V(0, -4, 0)), 40);
+    aim(c.camera, W.clone().add(V(-9, 0.9, 5)), H.clone().add(V(0, -2, 0)), 48);
     c.rings = (h) => (h.t >= m.barTime(86) - 0.08 ? [ax - 70, az, 2.2] : null);
     c.ringShape = [90, 12, 2.6, 0.5];
     c.ringLife = 5;
@@ -642,6 +657,8 @@ export function buildShots(m) {
   const ride = (c, { rise = 14 } = {}) => {
     const sH = sHeadAt(c.t);
     const pts = wormBody(wormPath, sH, 280, rise);
+    // Sink the tail into its wake, even as the worm passes over a ridge.
+    for (let i = 0; i < 4; i++) pts[i].y -= 28 * (1 - smoothstep(0, 4, i));
     c.worm = { points: pts, flex: Math.min(1, c.snareEnv), open: 0.35, pour: { uOpacity: 0.45 } };
     // Sample the raised body, including slope: the rider used to stand inside it.
     const curve = new THREE.CatmullRomCurve3(pts);
@@ -666,22 +683,25 @@ export function buildShots(m) {
   cut('14b', 'Head-on and low: the worm ploughs toward us', B(89), (c) => {
     const { H } = ride(c, { rise: 18 });
     const cam = H.clone().add(V(-30, 3, -150 + (c.t - B(89)) * 6));
-    cam.y = duneHeight(cam.x, cam.z) + 3;
-    aim(c.camera, cam, H.clone().add(V(0, 14, 0)), 30);
+    cam.y = duneHeight(cam.x, cam.z) + 8;
+    const target = H.clone().add(V(0, 18, 0));
+    aim(c.camera, sightline(cam, target, 2), target, 37);
   });
   cut('14c', 'From above: the wake and its rings', B(91), (c) => {
     const { R } = ride(c);
-    aim(c.camera, R.clone().add(V(-30, 130, 160)), R.clone().add(V(0, 0, -80)), 44);
+    aim(c.camera, R.clone().add(V(-112, 195, 105)), R.clone().add(V(0, -10, 68)), 54, -0.10);
+    c.worm.pour = { uBox: [720, 60, 720], uSize: 1.4, uOpacity: 0.21 };
   });
   cut('14d', 'Close on the rider, cloak whipping', B(93), (c) => {
     const { R } = ride(c);
-    aim(c.camera, R.clone().add(V(-4.5, 0.6, -3.5)), R.clone().add(V(0, 1.7, 0)), 34);
+    aim(c.camera, R.clone().add(V(-5.6, 1.2, -3.5)), R.clone().add(V(0, 1.2, 0)), 36);
   });
   cut('14e', 'Long lens: a speck on the worm against the sun', B(95), (c) => {
     const { R } = ride(c);
     const cam = R.clone().add(V(-340, 0, 40));
     cam.y = clear(cam.x, cam.z, 10, 30);
-    aim(c.camera, cam, R.clone().add(V(0, 8, -30)), 22);
+    const target = R.clone().add(V(0, 4, 15));
+    aim(c.camera, sightline(cam, target, 3), target, 27);
     c.look.sunAzim = 84;
     c.look.sunElev = 3.0;
   });
@@ -722,7 +742,7 @@ export function buildShots(m) {
   cut('15d', 'The rider braced against the sand', B(103), (c) => {
     const { R } = ride(c, { rise: 12 });
     c.walker = { ...c.walker, brace: 1 };
-    aim(c.camera, R.clone().add(V(-3.2, 1.0, 2.6)), R.clone().add(V(0, 1.6, -1)), 36);
+    aim(c.camera, R.clone().add(V(-5, 2.5, 3.4)), R.clone().add(V(0, 1.25, -0.6)), 37);
     const l = lightning(c.t);
     c.post = { flash: l * 0.75, flashColor: [0.8, 0.88, 1.0] };
     c.exposure = 1 + l * 1.5;
@@ -767,12 +787,18 @@ export function buildShots(m) {
     night(c);
     const W = onGround(NX, NZ);
     c.walker = { x: NX, z: NZ, heading: Math.PI * 0.85, step: 0 };
-    const a = c.local * 0.35;
-    const wx = NX + 140 * Math.cos(a), wz = NZ + 140 * Math.sin(a);
-    c.mounds = [[wx, wz, 7, 26], [NX + 140 * Math.cos(a - 0.35), NZ + 140 * Math.sin(a - 0.35), 4, 22]];
-    c.rings = (h) => { const a = (h.t - c.shot.start) * 0.35; return [NX + 140 * Math.cos(a), NZ + 140 * Math.sin(a), h.w * 1.6]; };
-    c.ringShape = [60, 5, 1.0, 0.55];
-    aim(c.camera, W.clone().add(V(3 - c.u * 4, 0.7, 11)), W.clone().add(V(-1.5, 3.6, -10)), 36);
+    // Follow a visible arc on the far slope, with the walker in the foreground.
+    const orbit = (t) => {
+      const a = -2.48 + clamp((t - c.shot.start) / (c.shot.end - c.shot.start)) * 1.82;
+      return [NX + 155 * Math.cos(a), NZ + 155 * Math.sin(a)];
+    };
+    const [wx, wz] = orbit(c.t);
+    const [tx, tz] = orbit(c.t - 1.05);
+    c.mounds = [[wx, wz, 11, 24], [tx, tz, 6, 20]];
+    c.rings = (h) => [...orbit(h.t), h.w * 1.6];
+    c.ringShape = [60, 6, 1.0, 0.55];
+    const target = W.clone().add(V((wx - NX) * 0.17, 2.4, -26));
+    aim(c.camera, W.clone().add(V(7 - c.u * 4, 4, 17)), target, 43);
   }, () => { NZ = -16800; NX = crestX(9300, NZ); });
 
   cut('17c', 'Stop: blackout, then the biggest ring of all', B(116), (c) => {
@@ -796,7 +822,8 @@ export function buildShots(m) {
     const a = c.local * 0.04;
     aim(c.camera, V(NX, g + 650 - c.local * 8, NZ), V(NX + Math.cos(a) * 30, g, NZ + Math.sin(a) * 30), 56);
     c.rings = (h) => [NX + (hash1(h.i * 5) - 0.5) * 900, NZ + (hash1(h.i * 5 + 1) - 0.5) * 520, h.w * 2];
-    c.ringShape = [110, 9, 2.4, 0.38];
+    c.ringGlow = [0.10, 0.22, 0.43];
+    c.ringShape = [110, 9, 1.35, 0.48];
     c.ringLife = 6;
     c.spice = null;
   });
@@ -821,7 +848,7 @@ export function buildShots(m) {
       const a = Math.PI * (0.08 + 0.84 * (k / 14)) + dive * 1.15;
       pts.push(V(x0 + Math.cos(a) * 170, g - 50 + Math.sin(a) * 160 - dive * 190, z0 + (k - 7) * 5));
     }
-    c.worm = { points: pts, open: 0.2, pour: { uOpacity: 0.9, uSize: 0.5 } };
+    c.worm = { points: pts, plates: 46, open: 0.2, pour: { uOpacity: 0.9, uSize: 0.5 } };
     aim(c.camera, V(x0 - 40, clear(x0 - 40, z0 + 360, 8, 30), z0 + 360), V(x0 + 20, g + 60, z0), 42);
     c.drift = { uGust: 1.2, uOpacity: 0.6 };
     c.rings = (h) => {
@@ -842,7 +869,9 @@ export function buildShots(m) {
     c.rings = (h) => (h.t >= B(126) - 0.05 ? [x0, z0, 1.4 + 0.5 * (h.i - first)] : null);
     c.ringShape = [120, 9, 2.8, 0.32];
     c.ringLife = 6;
-    c.post.flash = 0.22 * Math.min(1, c.kickEnv);
+    c.post.flash = 0.14 * Math.min(1, c.kickEnv);
+    c.post.grain = 0.023;
+    c.ringGlow = [0.075, 0.033, 0.02];
     c.drift = { uGust: 1 + c.snareEnv, uOpacity: 0.45, uSize: 0.4 };
     c.shake = c.kickEnv * 0.2;
   });
@@ -852,7 +881,7 @@ export function buildShots(m) {
     const w = RIDGE(2600);
     const W = onGround(w.x, w.z);
     c.walker = { x: w.x, z: w.z, heading: -Math.PI / 2, step: 0 };
-    aim(c.camera, W.clone().add(V(-190 + c.local * 3, 22, 70)), W.clone().add(V(60, 10, 0)), 28);
+    aim(c.camera, W.clone().add(V(-74 + c.local * 2, 8, 34)), W.clone().add(V(15, 5, -3)), 34);
     c.drift = { uOpacity: 0.5, uGust: Math.max(0, 1 - c.local * 0.5) };
     c.post.title = smoothstep(315.6, 317.6, c.t);
     c.post.fade = 1 - smoothstep(319.2, 321.2, c.t);

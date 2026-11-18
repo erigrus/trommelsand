@@ -252,3 +252,13 @@ asset requests or JavaScript exceptions. The public address is https://erigrus.g
 The deployment completed successfully after Pages was enabled. The public URL returned HTTP 200;
 a Chromium check loaded the rigged walker and all 55 shots, played and paused the song, and reported
 no JavaScript errors or failed HTTP asset requests. An aborted blob preload request did not affect playback.
+
+## 2026-11-18 — Visual polish
+
+Two independent reviews covered the skeleton, thumper, breach, ride, storm and finale. Reframed
+the ridge descent, skeleton insert, thumper details, rider views and end card. Reduced interference
+from overlapping aerial waves and replaced full-width storm stripes with small diagonal gusts.
+
+Fixed changing worm plate counts, mismatched bone seams and hard swaps between sand drifts.
+Authored the four thumper angles as separate cuts at their existing bar boundaries so the motion
+blur shutter respects them. The timeline now reports 58 cuts. The music and other cut times are unchanged.
