@@ -176,7 +176,7 @@ light indigo gold    bright gold      hazy gold       white noon      dusty  hus
 
 ## Cut list (as built)
 
-55 cuts. Generated from `video/src/timeline.js` with `npm run cuts`; rerun it after changing cuts.
+58 cuts. Generated from `video/src/timeline.js` with `npm run cuts`; rerun it after changing cuts.
 
 | Cut | Time | Bar | Length | What happens |
 |---|---|---|---|---|
@@ -203,7 +203,10 @@ light indigo gold    bright gold      hazy gold       white noon      dusty  hus
 | 07a | 1:51.1 | 49 | 9.1 s | Heat: across the basin on a long lens, rings run over the hardpan |
 | 07b | 2:00.2 | 53 | 9.2 s | Tracking the walker, who stops on the fill |
 | 07c | 2:09.4 | 57 | 9.1 s | Bar 57: the thumper goes in and slams every beat |
-| 07d | 2:18.5 | 61 | 9.1 s | One bar each: rings from above, the hammer, the basin, the grains |
+| 07d | 2:18.5 | 61 | 2.3 s | Thumper rings from above |
+| 07e | 2:20.8 | 62 | 2.3 s | The thumper hammer strikes |
+| 07f | 2:23.1 | 63 | 2.3 s | The impact travels across the basin |
+| 07g | 2:25.4 | 64 | 2.3 s | Grains lift from the cracked sand |
 | 08a | 2:27.7 | 65 | 9.1 s | Colour drains; far away a mound moves |
 | 08b | 2:36.8 | 69 | 9.2 s | The mound on a long lens, sand sliding off it |
 | 09 | 2:46.0 | 73 | 4.5 s | Break: the drums stop, the grains hang in the air |

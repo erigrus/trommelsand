@@ -16,7 +16,7 @@ tools/analyze.py             music analysis -> analysis/analysis.json (+ plots)
 analysis/analysis.json       tempo map, bars, beats, hits (kick/snare/hat), events, curves @25fps
 docs/                        process log, analysis notes, storyboard, renderer guide, handoff
 video/                       three.js app (Vite) + render scripts
-  src/timeline.js            THE STORYBOARD AS CODE: 55 cuts, each pinned to a bar
+  src/timeline.js            THE STORYBOARD AS CODE: 58 cuts, each pinned to a bar
   src/rig.js                 camera/staging helpers (aim, crest paths, flights, basins)
   src/look.js                colour script keyframes
   src/director.js            turns time t into a frame (world, uniforms, post)
